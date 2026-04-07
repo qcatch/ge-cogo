@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Genesis Energy — Total Cost of Energy',
-  description: 'See your total household energy spend across power, gas, and petrol — and discover how much you could save by going electric.',
+  title: 'Genesis | Household Cost Dashboard',
+  description: 'See where your money goes and get AI-powered tips to reduce household costs.',
   robots: { index: false, follow: false },
   icons: {
     icon: [
@@ -25,8 +25,8 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: 'Genesis Energy — Total Cost of Energy',
-    description: 'See your total household energy spend and how much you could save by going electric.',
+    title: 'Genesis | Household Cost Dashboard',
+    description: 'See where your money goes and get AI-powered tips to reduce household costs.',
     type: 'website',
   },
 }

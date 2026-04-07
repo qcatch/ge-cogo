@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { MarkdownContent } from './markdown-content'
 
 export interface Message {
   id: string
@@ -32,10 +33,8 @@ export function MessageList({ messages, streamingContent, isLoading }: MessageLi
         <div className="flex gap-2">
           <GenesisIcon />
           <div className="rounded-lg bg-muted px-3 py-2 max-w-[85%]">
-            <p className="text-sm whitespace-pre-wrap">
-              {streamingContent}
-              <span className="inline-block w-2 h-4 ml-0.5 bg-primary animate-pulse" />
-            </p>
+            <MarkdownContent content={streamingContent} />
+            <span className="inline-block w-2 h-4 ml-0.5 bg-primary animate-pulse" />
           </div>
         </div>
       )}
@@ -74,7 +73,7 @@ function MessageBubble({ message }: { message: Message }) {
     <div className="flex gap-2">
       <GenesisIcon />
       <div className="rounded-lg bg-muted px-3 py-2 max-w-[85%]">
-        <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+        <MarkdownContent content={message.content} />
       </div>
     </div>
   )

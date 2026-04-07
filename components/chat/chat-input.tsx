@@ -42,7 +42,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask about your energy costs..."
+          placeholder="Ask about your household costs..."
           rows={1}
           disabled={isLoading}
           className="flex-1 resize-none rounded-lg border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
