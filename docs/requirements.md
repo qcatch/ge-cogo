@@ -1,52 +1,31 @@
-# Product Requirements Document (PRD) Outline
+# Product Requirements
 
-## 1. Overview
-- Purpose: Briefly describe the problem or opportunity.
-- Goals & Objectives: Define clear, measurable goals and desired outcomes.
-- Target Users: Clearly identify the intended user segments and their key characteristics.
+The full Product Requirements Document (PRD) for this project is maintained at:
 
-## 2. Product Vision
-- Provide a concise vision statement describing what the product aims to achieve.
+**[genesis-total-cost-of-energy.prd.md](../.claude/PRPs/prds/genesis-total-cost-of-energy.prd.md)**
 
-## 3. Features & Functional Requirements
+## Summary
 
-Clearly list each feature with detailed requirements:
-- Feature Name
-- Description: Brief summary of feature purpose.
-- User Stories: Outline user-centered scenarios illustrating usage.
-- Acceptance Criteria: Define conditions under which the feature is complete.
-- Priority: (Must-have, Should-have, Nice-to-have)
+Genesis Energy Total Cost of Energy tool — a working prototype combining:
 
-## 4. User Experience & Design Requirements
-- Wireframes/Mockups: Link or embed basic visual references.
-- User Flows: Explain key user journeys.
-- Accessibility: Define accessibility considerations and standards.
+1. **Total Cost of Energy Calculator** — input household profile, see combined power + gas + petrol spend vs. fully electrified
+2. **AI Energy Advisor (EIQ)** — conversational assistant grounded in user's TCE data
+3. **Savings Roadmap** — prioritised electrification switch list with payback periods
+4. **Bill Tracker Dashboard** — 12-month energy spend visualisation with seasonal patterns
+5. **Genesis Brand 4.0** — new visual identity (Ultra Orange, Space, Ultra Violet, Sunwash Yellow)
 
-## 5. Technical Requirements
-- System Architecture: Outline high-level technical architecture.
-- Technology Stack: List proposed technologies, frameworks, tools.
-- Integrations: Specify third-party integrations, APIs, or dependencies.
+## Key Hypothesis
 
-## 6. Performance & Scalability
-- Define performance expectations (load times, responsiveness, scalability).
-- Outline growth considerations and capacity planning.
+We believe a Total Cost of Energy tool with an AI energy advisor will position Genesis as the brand that helps NZ households understand and cut their full energy spend. We'll know we're right when Genesis leadership approve the concept for August launch.
 
-## 7. Security & Compliance
-- Outline security standards, compliance needs (e.g., GDPR, HIPAA), data protection practices, and risk management requirements.
+## Target Users
 
-## 8. Metrics & Success Criteria
-- Specify KPIs and how success will be measured.
-- Include analytics, tracking mechanisms, or reporting needs.
+Any New Zealander — homeowner or renter — feeling the pressure of rising energy costs across power, gas, and petrol.
 
-## 9. Constraints & Assumptions
-- List known limitations, assumptions, or dependencies.
+## Out of Scope (Prototype)
 
-## 10. Timeline & Milestones
-- High-level milestones and timeline considerations.
-
-## 11. Risks & Mitigation Strategies
-- Identify potential risks and proposed solutions.
-
-## 12. Appendices
-- Supporting documents, market analysis, competitive reviews, research summaries, and references.
-
+- Real Salesforce/Agentforce integration
+- Open banking / multi-bank account aggregation
+- Energy plan switching or provider comparison
+- Smart meter data integration
+- Production auth, payments, or account management
