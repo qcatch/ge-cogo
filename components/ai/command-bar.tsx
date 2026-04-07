@@ -36,7 +36,7 @@ export function CommandBar({ onSubmit, isLoading }: CommandBarProps) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about your energy costs..."
+            placeholder="Ask how to reduce your household costs..."
             disabled={isLoading}
             className="flex-1 bg-transparent text-sm placeholder:text-muted-foreground focus:outline-none disabled:opacity-50"
           />
@@ -53,7 +53,7 @@ export function CommandBar({ onSubmit, isLoading }: CommandBarProps) {
           )}
         </div>
         <p className="text-xs text-muted-foreground text-center mt-3">
-          Powered by AI — your personal energy advisor
+          Powered by AI — your personal savings advisor
         </p>
       </div>
     </div>

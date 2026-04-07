@@ -137,7 +137,7 @@ export function ConversationPanel({
     <Sheet open={open} onOpenChange={handleOpenChange}>
       <SheetContent side="right" className="flex flex-col w-full sm:max-w-lg p-0">
         <SheetHeader className="px-4 py-3 border-b border-border">
-          <SheetTitle className="text-sm font-medium">AI Energy Advisor</SheetTitle>
+          <SheetTitle className="text-sm font-medium">Savings Advisor</SheetTitle>
         </SheetHeader>
         <MessageList
           messages={messages}

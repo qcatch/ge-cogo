@@ -34,19 +34,9 @@ export function formatCurrencyShort(amount: number): string {
   return formatCurrency(amount)
 }
 
-/** Format kWh with commas: "7,000 kWh" */
-export function formatKwh(kwh: number): string {
-  return `${numberFormatter.format(Math.round(kwh))} kWh`
-}
-
 /** Format percentage: "36%" */
 export function formatPercent(pct: number): string {
   return `${Math.round(pct)}%`
-}
-
-/** Format CO2 tonnes: "5.12t CO₂" */
-export function formatTonnes(t: number): string {
-  return `${t.toFixed(2)}t CO₂`
 }
 
 /** Format a number with commas: "7,366" */
