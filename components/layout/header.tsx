@@ -10,17 +10,26 @@ const navItems = [
   { label: 'Bill Tracker', target: 'bill-tracker' },
 ]
 
-function scrollTo(id: string) {
-  const el = document.getElementById(id)
-  if (el) {
-    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  } else {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+interface HeaderProps {
+  onNavigate?: (target: string) => void
 }
 
-export function Header() {
+export function Header({ onNavigate }: HeaderProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  function handleNav(target: string) {
+    if (onNavigate) {
+      onNavigate(target)
+    } else {
+      // Fallback: try scrolling directly
+      const el = document.getElementById(target)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+    }
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
@@ -40,7 +49,7 @@ export function Header() {
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-1">
           {navItems.map((item) => (
-            <Button key={item.target} variant="ghost" size="sm" onClick={() => scrollTo(item.target)}>
+            <Button key={item.target} variant="ghost" size="sm" onClick={() => handleNav(item.target)}>
               {item.label}
             </Button>
           ))}
@@ -65,7 +74,7 @@ export function Header() {
             <button
               key={item.target}
               className="block w-full text-left px-3 py-2 text-sm text-foreground hover:bg-muted rounded-md"
-              onClick={() => { scrollTo(item.target); setMobileMenuOpen(false) }}
+              onClick={() => { handleNav(item.target); setMobileMenuOpen(false) }}
             >
               {item.label}
             </button>

@@ -45,11 +45,24 @@ export function TCEResults({ result, onEdit }: TCEResultsProps) {
         </CardContent>
       </Card>
 
-      {/* Monthly Savings Callout */}
-      <div className="rounded-xl bg-accent px-4 py-3 text-center">
+      {/* Monthly Savings Callout + Quick Actions */}
+      <div className="rounded-xl bg-accent px-4 py-3 text-center space-y-2">
         <p className="text-sm text-accent-foreground">
           That&apos;s <span className="font-bold text-lg">{formatCurrency(result.monthlySavings)}/month</span> less on energy
         </p>
+        {result.roadmap.length > 0 && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => {
+              const el = document.getElementById('savings-roadmap')
+              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }}
+          >
+            See your savings roadmap
+            <ArrowDown className="h-3 w-3 ml-1" />
+          </Button>
+        )}
       </div>
 
       {/* Cost Breakdown Chart */}
@@ -129,21 +142,11 @@ export function TCEResults({ result, onEdit }: TCEResultsProps) {
       )}
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Button variant="outline" onClick={onEdit} className="flex-1">
+      <div className="flex justify-center">
+        <Button variant="outline" onClick={onEdit}>
           <ArrowLeft className="h-4 w-4 mr-2" />
           Edit my profile
         </Button>
-        {result.roadmap.length > 0 && (
-          <Button
-            variant="secondary"
-            className="flex-1"
-            onClick={() => document.getElementById('savings-roadmap')?.scrollIntoView({ behavior: 'smooth' })}
-          >
-            See savings roadmap
-            <ArrowDown className="h-4 w-4 ml-2 rotate-[-90deg]" />
-          </Button>
-        )}
       </div>
     </div>
   )
