@@ -1,0 +1,139 @@
+---
+description: Catch Coding Principles
+globs:
+alwaysApply: true
+---
+
+
+# Coding Principles & Practices
+
+A reference for writing clean, maintainable, and scalable code. Use this during design, discussion, code review, or debugging. Prioritize higher-ranked principles when trade-offs are necessary.
+
+
+
+## General Principles
+
+### 1. **KISS** – *Keep It Simple, Stupid*
+
+Simple code is easier to test, understand, and maintain. Avoid unnecessary complexity.
+
+### 2. **YAGNI** – *You Aren't Gonna Need It*
+
+Don't implement functionality until it's required. Prevents bloated and speculative code.
+
+### 3. **Do the Simplest Thing That Could Possibly Work**
+
+Helps you make real progress by solving the actual problem at hand.
+
+### 4. **Avoid Premature Optimization**
+
+First make it work, then make it right, *then* make it fast. Profile before optimizing.
+
+### 5. **Optimize for Deletion**
+
+Write modular, loosely-coupled code that is easy to delete or refactor.
+
+### 6. **Boy Scout Rule**
+
+Leave the codebase cleaner than you found it. Refactor as you go.
+
+### 7. **Code for the Maintainer**
+
+Assume the next person reading your code has limited context. Be kind, clear, and descriptive.
+
+
+
+## Object & Class Design
+
+### 8. **DRY** – *Don't Repeat Yourself*
+
+Every piece of knowledge should have a single, unambiguous representation.
+
+### 9. **Single Responsibility Principle (SRP)**
+
+Each class/module/function should have one reason to change.
+
+### 10. **Encapsulate What Changes**
+
+Isolate likely-to-change areas behind clean interfaces.
+
+### 11. **Favor Composition Over Inheritance**
+
+Compose behavior from smaller pieces instead of extending class trees.
+
+### 12. **Open/Closed Principle**
+
+Open to extension, closed to modification. Add behavior via interfaces or plugins.
+
+### 13. **Interface Segregation Principle**
+
+Prefer many client-specific interfaces over one general-purpose interface.
+
+### 14. **Liskov Substitution Principle**
+
+Subtypes must be usable in place of their base types without breaking logic.
+
+### 15. **Dependency Inversion Principle**
+
+High-level modules should not depend on low-level ones. Depend on abstractions.
+
+### 16. **Hide Implementation Details**
+
+Minimize exposure of internals. Use access modifiers and clean APIs.
+
+### 17. **Curly's Law** – *Do One Thing*
+
+Each method or class should do one thing, and do it well.
+
+### 18. **Command Query Separation**
+
+A method should either change state (*command*) or return data (*query*), not both.
+
+
+
+
+## Module & Architecture Design
+
+### 19. **Separation of Concerns**
+
+Divide systems into distinct features that overlap as little as possible.
+
+### 20. **Minimize Coupling**
+
+Reduce interdependencies between modules. Fewer assumptions, fewer bugs.
+
+### 21. **Maximize Cohesion**
+
+Group related logic together. Highly cohesive components are easier to maintain.
+
+### 22. **Law of Demeter** – *Don't Talk to Strangers*
+
+Objects should only interact with their immediate collaborators.
+
+### 23. **Orthogonality**
+
+Independent parts should not affect each other. Reduces complexity and increases reuse.
+
+### 24. **Connascence**
+
+Measure and reduce the degree of dependency between software components.
+
+### 25. **Inversion of Control**
+
+Let frameworks or dependency injectors manage control flow and dependencies.
+
+### 26. **Robustness Principle**
+
+Be conservative in what you send, liberal in what you accept.
+
+
+
+## Testing & Reliability
+
+### 27. **FIRST Testing Principles**
+
+Tests should be Fast, Isolated, Repeatable, Self-validating, and Timely.
+
+### 28. **Arrange, Act, Assert**
+
+Structure unit tests clearly: set up, execute, verify.

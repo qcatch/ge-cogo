@@ -1,0 +1,78 @@
+---
+description: Catch Standard Documentation
+globs:
+alwaysApply: true
+---
+
+## **Project Documentation**
+
+Project documentation refers to any technical documentation directly relevant to the project. This includes setup instructions, deployment details, architectural diagrams, and more.
+
+**Examples**
+
+* Setup instructions
+* Change logs
+* Deployment instructions
+* Integration and API documentation
+* Architecture diagrams, “As Built” documentation, and Bill of Materials
+
+### **Guidelines**
+
+*In general, project documentation should be included with the project code and versioned in Git.*
+
+#### Documentation in Git
+
+* All documentation committed to the Git repository must be in Markdown format.
+* Every project **must** include:
+  * `README.md`
+    * **Purpose:** Starting point for all documentation.
+    * **Content:** Project outline, getting started, links to other documentation
+    * [A template is available here](https://github.com/catch-internal/standards/blob/main/standards/README.md).
+  * `docs/architecture.md`
+    * **Purpose:** Starting point for architecture documentation
+    * **Content:** This outlines the HLA and should contain basic diagrams, etc.
+  * `docs/technical.md`
+    * **Purpose:** Starting point for technical specification documentation
+    * **Content:** Technical specifications, incl. technologies, services, and frameworks used.
+  * `docs/requirements.md`
+    * **Purpose:** Starting point for requirements specifications
+    * **Content:**
+      * Product Requirement Document (PRD) or Standard Operating Procedure (SOP). Defines the project's purpose, problems it solves, core requirements, and goals. - Serves as the foundational document and source of truth for project scope.
+      * Product Requirement Documents (PRDs) are foundational blueprints in software development, defining what a product should achieve and guiding teams to align on scope, features, and objectives
+* Any other documentation files should be placed in the project's `docs` folder.
+* Any reference material such as specifications or user guides should be put in the `reference` folder
+* Any external references (e.g., third-party API documentation) should be linked to via a Markdown file either in the docs folder or from the `README.md`.
+* Diagrams should be both viewable and editable, so anything included with code needs to be provided as
+  * A [mermaid](https://mermaid.js.org/intro/) diagram embedded into a markdown file
+  * A PNG file that is shipped with the project, embedded into a markdown file, and references the source file (e.g. Figma or a draw.io XML file in our Google Drive)
+
+e.g
+
+```none
+├── README.md
+├── docs
+│   ├── _assets
+│   │   └──diagram.png
+│   ├── reference
+│   │   └──3rd-party-user-guide.md
+│   │   └──3rd-party-specification.md
+│   ├── architecture.md
+│   ├── technical.md
+│   ├── requirements.md
+│   └── ...etc.md
+```
+
+### **Required Documentation**
+
+At a minimum, each project must include:
+
+* Setup instructions — must be accurate and maintained.
+* Deployment instructions — must be accurate and maintained.
+* Usage instructions — must be accurate and maintained.
+* A list of environments — must be accurate and maintained.
+* `README.md` - that adheres to the above guidelines.
+* Architecture and bill of materials information, including:
+  * All services, APIs, or component systems used in the project and their mapping to environments.
+    * **NB:** `docs/technical.md` - is the jump-off point for this info
+  * A High-Level Architecture (HLA) diagram showing how services interact
+    * **NB:** `docs/architecture.md` - is the jump-off point for this info

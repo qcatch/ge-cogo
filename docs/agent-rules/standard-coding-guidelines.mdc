@@ -1,0 +1,42 @@
+---
+description: Catch Coding Guidelines
+globs:
+alwaysApply: true
+---
+
+## **Project Structure**
+
+* **Use feature-based folders** over type-based (e.g. auth/login/ vs components/buttons/).
+* Separate **API**, **UI**, **Logic**, and **Types** clearly.
+* Use framework conventions
+
+## **Code Style**
+
+* **Follow idiomatic language conventions**
+  * PEP8 for Python
+  * Airbnb for JS/TS
+  * PSR12 for PHP
+  * etc
+  * Ensure that you ship formatting config files to enforce conventions e.g. `.prettierrc`, `.editorconfig` etc
+* Prefer **clarity over cleverness**.
+* Apply the principle of single responsibility
+  * Keep functions **pure and small**.
+  * Always name things **descriptively**
+
+## Dependency Management
+
+* **Limit dependencies**; use standard libraries where possible.
+* When consuming libraries, ensure that:
+  * You are using well-supported and maintained libraries
+  * Lock dependencies to the current major version
+* Specify language support versions in files like `.nvmrc` and `package.json`
+
+## Security
+
+* Never hardcode secrets – use **env vars + secret managers**.
+* Validate **all inputs**, especially in APIs and user-supplied data.
+* Apply **least privilege** in IAM roles and permissions.
+
+## Principles
+
+* Make sure you apply the [principles of good coding](https://catchdesign.getoutline.com/doc/principles-AlQvUjB3WO) to your work

@@ -1,0 +1,248 @@
+---
+description: Catch Secure Coding Standard
+globs:
+alwaysApply: true
+---
+
+# Catch Secure Coding Standard
+
+## 1. Introduction
+
+This document outlines the minimum-security requirements and best practices for all software developed by or for Catch. Adherence to this standard is mandatory to ensure the confidentiality, integrity, and availability of our systems and data.
+
+This standard is a living document and will be updated periodically to reflect new threats, vulnerabilities, and industry best practices.
+
+**Scope:** This standard applies to all code, including frontend, backend, mobile, infrastructure-as-code (IaC), scripts, and any other software components.
+
+**Audience:** All developers, architects, QA engineers, and technical leads involved in the software development lifecycle (SDLC).
+
+**Compliance:** Non-compliance with this standard may result in security vulnerabilities, project delays, or other negative consequences. Exceptions MUST be documented and approved by the Security team.
+
+## 2. Guiding Principles
+
+*   **Secure by Design:** Security considerations MUST be integrated into all phases of the SDLC, from requirements gathering to deployment and maintenance.
+*   **Defence in Depth:** Implement multiple layers of security controls, so that if one control fails, others can still protect the system.
+*   **Principle of Least Privilege:** Grant only the minimum necessary permissions to users, processes, and components.
+*   **Fail Securely:** Applications MUST handle errors and exceptions in a way that does not compromise security or expose sensitive information.
+*   **Keep it Simple:** Complex systems are harder to secure. Strive for simplicity in design and implementation.
+*   **Trust No One (Zero Trust):** Do not implicitly trust any user, device, or network. Verify explicitly.
+
+## 3. General Security Requirements
+
+### 3.1. Data Security
+
+*   **`[SEC-DATA-001]`** Sensitive data (as defined below) MUST be identified, classified, and protected according to its sensitivity level.
+*   **`[SEC-DATA-002]`** Sensitive data MUST NOT be logged unless explicitly required for security auditing and approved. If logged, it MUST be masked or tokenized.
+*   **`[SEC-DATA-003]`** Any data classified as Confidential or higher under the Data Classification Policy. (Refer to the Data Classification Policy at [`/docs/data-classification-policy.md`](/docs/data-classification-policy.md:0) for specific definitions. This policy should be made machine-accessible or its relevant parts embedded if critical for automated checks. (Note: This document should be created if it doesn't exist.))
+*   **`[SEC-DATA-004]`** Data at rest containing PII or other sensitive information MUST be encrypted using strong, approved encryption algorithms.
+*   **`[SEC-DATA-005]`** Data in transit MUST be encrypted using TLS 1.2 or higher. Older versions (TLS 1.0, 1.1, SSLv3, etc.) are PROHIBITED.
+
+### 3.2. Secure Development Lifecycle (SDL)
+
+*   **`[SEC-GEN-001]`** Security requirements SHALL be defined and documented as part of the project planning phase.
+*   **`[SEC-GEN-002]`** Threat modelling documentation (e.g., using STRIDE, DREAD, or similar methodologies, covering data flows, trust boundaries, and identified threats/mitigations) SHALL exist and be maintained for all new applications and for major architectural changes to existing ones. This documentation MUST be stored at a designated, accessible location (e.g., /docs/threat-models/<app-name>/).
+*   **`[SEC-GEN-003]`** Security testing (including SAST, DAST, and penetration testing as appropriate) SHALL be integrated into the SDLC.
+*   **`[SEC-GEN-004]`** A secure software development training program SHALL be completed by all development staff annually.
+
+### 3.3. Input Validation and Output Encoding
+
+*   **`[SEC-INP-001]`** All input from untrusted sources (users, external systems, files, etc.) MUST be validated before processing. This includes validation for type, length, format, and range.
+*   **`[SEC-INP-002]`** Implement allow-lists for input validation wherever possible. Deny-lists are less effective and should be avoided.
+*   **`[SEC-INP-003]`** Contextual output encoding (e.g., HTML encoding, JavaScript encoding, URL encoding) MUST be applied to all data before rendering it in a user interface or including it in a structured document (HTML, XML, JSON). This is critical to prevent XSS.
+*   **`[SEC-INP-004]`** Parameterized queries or an equivalent secure mechanism MUST be used for all database access to prevent SQL injection. Dynamic query construction with unvalidated input is PROHIBITED.
+
+### 3.4. Authentication and Authorization
+
+*   **`[SEC-AUTH-001]`** All access to systems and data MUST be authenticated. Anonymous access is PROHIBITED unless explicitly justified and approved for public resources.
+*   **`[SEC-AUTH-002]`** Strong authentication mechanisms MUST be implemented. Multi-Factor Authentication (MFA) is REQUIRED for all administrative access and for access to sensitive data or critical systems.
+*   **`[SEC-AUTH-003]`** Passwords MUST be stored using a modern, adaptive, one-way hashing algorithm. (e.g., Argon2id, scrypt, bcrypt, PBKDF2 with sufficient iterations). Argon2id is RECOMMENDED. scrypt and bcrypt are acceptable alternatives. (Note: 'Modern' and 'adaptive' imply resistance to current attack vectors and configurability to scale with hardware improvements. Refer to NIST or OWASP guidance for current best practices on algorithm selection and configuration.)
+*   **`[SEC-AUTH-004]`** User password policies MUST align with NIST SP 800-63B. Specifically, passwords:
+    *   MUST be a minimum of 12 characters if chosen by the user (8 characters if randomly generated by the system).
+    *   MUST be checked against a list of known compromised passwords (e.g., HaveIBeenPwned) upon creation or change.
+    *   MUST NOT have arbitrary complexity requirements (e.g., forcing mixed case, numbers, symbols).
+    *   MUST NOT have periodic (e.g., 90-day) rotation requirements unless there is evidence of compromise.
+*   **`[SEC-AUTH-005]`** Session management MUST be secure:
+    *   Session identifiers MUST be unpredictable and generated using a cryptographically secure random number generator.
+    *   Session identifiers MUST be protected against hijacking (e.g., using HttpOnly and Secure flags for cookies).
+    *   Sessions MUST have appropriate timeouts (e.g., 15-30 minutes of inactivity for interactive sessions).
+    *   Logout functionality MUST securely invalidate the session on both client and server-side.
+*   **`[SEC-AUTH-006]`** Authorization (access control) decisions MUST be enforced on the server-side. Client-side authorization checks are insufficient.
+*   **`[SEC-AUTH-007]`** The principle of least privilege MUST be applied. Users and services should only have access to the resources and functions necessary for their role.
+*   **`[SEC-AUTH-008]`** Access control policies MUST be clearly defined, documented, and regularly reviewed.
+
+### 3.5. Dependency Management
+
+*   **`[SEC-DEPS-001]`** All third-party components (libraries, frameworks, etc.) MUST be sourced from trusted repositories and their integrity verified, in accordance with the Software Supply Chain Security Policy. (Refer to the Software Supply Chain Security Policy at [`/docs/software-supply-chain-security-policy.md`](/docs/software-supply-chain-security-policy.md:0) for specific definitions. This policy should be made machine-accessible or its relevant parts embedded if critical for automated checks. (Note: This document should be created if it doesn't exist.))
+*   **`[SEC-DEPS-002]`** A Software Bill of Materials (SBOM) MUST be maintained for all applications.
+*   **`[SEC-DEPS-003]`** Dependencies MUST be kept up-to-date. A process for regularly checking and updating dependencies MUST be in place. Vulnerable dependencies MUST be updated or mitigated promptly.
+
+### 3.6. Cryptography
+
+*   **`[SEC-CRYPTO-001]`** Only approved cryptographic algorithms and protocols SHALL be used. Refer to the `cryptographyStandards` block below.
+*   **`[SEC-CRYPTO-002]`** Weak or compromised cryptographic algorithms and protocols MUST NOT be used for security purposes. Refer to the `cryptographyStandards` block below.
+
+```yaml
+cryptographyStandards:
+  approvedAlgorithms:
+    symmetricEncryption:
+      - algorithm: "AES-256"
+        mode: "GCM"
+        notes: "Preferred"
+      - algorithm: "ChaCha20-Poly1305"
+        notes: "Acceptable alternative"
+    hashingForIntegrity: # For data integrity, not password hashing
+      - "SHA-256"
+      - "SHA3-256"
+      - "SHA3-512"
+      - "BLAKE2b-256"
+      - "BLAKE2b-512"
+  forbiddenForSecurityPurposes:
+    algorithms:
+      - "MD5"
+      - "SHA-1"
+      - "DES"
+      - "3DES" # (Triple DES)
+      - "RC4"
+    modes: # Cryptographic modes
+      - "ECB" # (Electronic Codebook)
+    protocols: # If applicable, though this section is about algorithms
+      - "SSLv2"
+      - "SSLv3"
+      - "TLSv1.0"
+      - "TLSv1.1" # (Note: TLS 1.2 is minimum, 1.3 recommended elsewhere)
+```
+*   **`[SEC-CRYPTO-003]`** Cryptographic keys MUST be securely managed (generated, stored, distributed, rotated, and destroyed) according to best practices and relevant policies.
+*   **`[SEC-CRYPTO-004]`** Do not implement custom cryptographic algorithms. Use well-vetted, standard libraries.
+
+### 3.7. Secrets Management
+
+*   **`[SEC-SECR-001]`** Secrets (API keys, passwords, certificates, database credentials, etc.) MUST NOT be hardcoded in source code, configuration files, or build scripts.
+*   **`[SEC-SECR-002]`** All secrets (API keys, passwords, certificates, etc.) MUST be managed through an approved secrets management platform. A list of currently approved platforms (e.g., HashiCorp Vault, AWS Secrets Manager) is maintained at [`/docs/approved-tools.md#secrets-management`](/docs/approved-tools.md:0). (Note: This document/section should be created if it doesn't exist.)
+*   **`[SEC-SECR-003]`** Secrets MUST have appropriate access controls and rotation policies.
+
+### 3.8. Error Handling and Logging
+
+*   **`[SEC-LOG-001]`** Error messages displayed to users MUST NOT reveal sensitive system information (e.g., stack traces, database errors, internal paths). Generic error messages should be used.
+*   **`[SEC-LOG-002]`** Detailed error information MUST be logged securely on the server-side for debugging and incident response.
+*   **`[SEC-LOG-003]`** Security-relevant events MUST be logged, including authentication attempts (success and failure), authorization decisions, significant transactions, and administrative actions.
+*   **`[SEC-LOG-004]`** Log entries MUST include sufficient context, minimally including: a timestamp (with timezone, e.g., ISO 8601), source IP address (where applicable and available), user identifier (for authenticated actions), a clear description of the event, and the event outcome (success/failure). (Note: 'Sufficient context' should be further defined by specific application needs and incident response requirements.)
+*   **`[SEC-LOG-005]`** Logs MUST be protected from unauthorized access, modification, and deletion.
+
+### 3.9. API Security
+
+*   **`[SEC-API-001]`** All API endpoints, especially those exposed externally, MUST implement strong authentication and authorization.
+*   **`[SEC-API-002]`** To prevent resource exhaustion, effective rate limiting and request throttling MUST be implemented on all API endpoints. (Note: 'Effective' implies limits are based on risk assessment, user/client identity, and resource capacity. Refer to [`/docs/api-rate-limiting-policy.md`](/docs/api-rate-limiting-policy.md:0) for specific guidance if available, otherwise define reasonable per-endpoint limits. (Note: This document should be created if it doesn't exist.))
+*   **`[SEC-API-003]`** Input validation and output encoding (as described in Section 3.3) are critical for APIs.
+*   **`[SEC-API-004]`** APIs SHOULD use standard data formats (e.g., JSON) and clearly define their schemas.
+*   **`[SEC-API-005]`** Sensitive data exposed via APIs MUST be minimized and protected according to its classification.
+
+### 3.10. Secure Configuration
+
+*   **`[SEC-CONF-001]`** Default credentials for all systems and services MUST be changed.
+*   **`[SEC-CONF-002]`** Unnecessary features, services, and ports MUST be disabled.
+*   **`[SEC-CONF-003]`** Security configurations for operating systems, web servers, application servers, databases, and cloud services MUST be hardened according to industry best practices (e.g., CIS Benchmarks).
+*   **`[SEC-CONF-004]`** Applications MUST implement appropriate HTTP security headers as defined in the `httpSecurityHeaders` block below.
+
+```yaml
+httpSecurityHeaders:
+  mustImplement:
+    - header: "Content-Security-Policy"
+      details: "A robust policy appropriate for the application's content and functionality. Start with a restrictive default (e.g., default-src 'self') and explicitly allow required sources. Avoid 'unsafe-inline' and 'unsafe-eval' where possible. (See [`/docs/csp-guidelines.md`](/docs/csp-guidelines.md:0) for examples and best practices - Note: This document should be created if it doesn't exist)."
+    - header: "Strict-Transport-Security"
+      valueExample: "max-age=31536000; includeSubDomains; preload" # Preload is optional but recommended for sites committed to HTTPS.
+      notes: "Ensure site is fully HTTPS before enabling includeSubDomains or preload."
+    - header: "X-Content-Type-Options"
+      value: "nosniff"
+    - header: "X-Frame-Options"
+      value: "DENY" # Or "SAMEORIGIN"
+      notes: "Alternatively, use CSP frame-ancestors 'none' or 'self'."
+  # Recommended headers could be added here if desired by the standard
+  # recommended:
+  #   - header: "Referrer-Policy"
+  #     value: "strict-origin-when-cross-origin"
+  #   - header: "Permissions-Policy"
+  #     details: "Disable features not used by the application."
+```
+
+### 3.11. Code Quality and Reviews
+
+*   **`[SEC-CODE-001]`** Code MUST be written in a clear, maintainable, and secure manner. Follow established coding standards for the language/framework.
+*   **`[SEC-CODE-002]`** All code MUST be regularly scanned for known vulnerabilities in its dependencies using an approved Software Composition Analysis (SCA) tool. A list of currently approved SCA tools is maintained at [`/docs/approved-tools.md#sca-tools`](/docs/approved-tools.md:0). (Note: This document/section should be created if it doesn't exist.)
+*   **`[SEC-CODE-003]`** Static Application Security Testing (SAST) tools SHOULD be used to identify potential vulnerabilities in custom code.
+*   **`[SEC-CODE-004]`** Evidence of code review, which MUST include an evaluation against this secure coding standard (e.g., via checklist, review comments referencing specific `[SEC-XXX-NNN]` identifiers), MUST be present for all merged code.
+*   **`[SEC-CODE-005]`** "Commented out" code containing sensitive information or credentials MUST NOT be committed to version control.
+
+### 3.12. Infrastructure as Code (IaC) Security
+
+*   **`[SEC-IAC-001]`** Infrastructure as Code (IaC) templates (e.g., Terraform, CloudFormation, Ansible) MUST be scanned for misconfigurations using an approved scanner before deployment. A list of currently approved IaC scanners (e.g., tfsec, Checkov) is maintained at [`/docs/approved-tools.md#iac-scanners`](/docs/approved-tools.md:0). (Note: This document/section should be created if it doesn't exist.)
+*   **`[SEC-IAC-002]`** Secrets MUST NOT be embedded in IaC templates. Use a secrets management solution.
+*   **`[SEC-IAC-003]`** IaC templates SHOULD enforce the principle of least privilege for cloud resources.
+
+### 3.13. Compliance and Auditing
+
+*   **`[SEC-COMP-001]`** Systems MUST be designed and implemented to meet relevant legal, regulatory, and contractual security requirements (e.g., GDPR, PCI DSS, if applicable).
+*   **`[SEC-COMP-002]`** Identified vulnerabilities MUST be remediated or mitigated according to the timelines and procedures defined in the Vulnerability Management Policy. (Refer to the Vulnerability Management Policy at [`/docs/vulnerability-management-policy.md`](/docs/vulnerability-management-policy.md:0) for specific definitions. This policy should be made machine-accessible or its relevant parts embedded if critical for automated checks. (Note: This document should be created if it doesn't exist.))
+*   **`[SEC-COMP-003]`** Regular security audits and assessments SHALL be conducted.
+
+## Appendix A: Secure Coding Checklist
+
+(This checklist is for human convenience and quick reference. LLM enforcement and detailed compliance MUST rely on the specific, machine-parsable requirements in the main body of this standard.)
+
+This checklist provides a quick reference for developers and reviewers. It is not exhaustive.
+
+*   **Input Validation & Output Encoding:**
+    *   [ ] All external input is validated (type, length, format, range).
+    *   [ ] Allow-lists are used for validation where possible.
+    *   [ ] Contextual output encoding is applied before rendering data.
+    *   [ ] Parameterized queries (or equivalent) are used for database access.
+*   **Authentication & Authorization:**
+    *   [ ] Strong authentication is implemented (MFA for sensitive access).
+    *   [ ] Passwords are hashed securely (e.g., Argon2id, scrypt, bcrypt).
+    *   [ ] Session management is secure (unpredictable IDs, HttpOnly/Secure flags, timeouts, server-side invalidation).
+    *   [ ] Authorization is enforced server-side.
+    *   [ ] Principle of least privilege is applied.
+*   **Data Security:**
+    *   [ ] Sensitive data is identified and classified.
+    *   [ ] Sensitive data is not logged unless approved and masked/tokenized.
+    *   [ ] Sensitive data (as defined by the Data Classification Policy at [`/docs/data-classification-policy.md`](/docs/data-classification-policy.md:0)) is encrypted in transit (TLS 1.2+ as per `[SEC-COMM-001]`) and at rest using approved algorithms (as per `cryptographyStandards.approvedAlgorithms` defined under `[SEC-CRYPTO-001]`).
+*   **Cryptography & Secrets:**
+    *   [ ] Only approved cryptographic algorithms are used.
+    *   [ ] Weak/compromised crypto is not used.
+    *   [ ] Secrets are not hardcoded; managed via an approved platform.
+*   **Error Handling & Logging:**
+    *   [ ] User-facing error messages are generic.
+    *   [ ] Detailed errors are logged securely server-side.
+    *   [ ] Security-relevant events are logged with sufficient context.
+*   **API Security:**
+    *   [ ] APIs have strong authentication and authorization.
+    *   [ ] Rate limiting and throttling are implemented.
+*   **Dependencies & Configuration:**
+    *   [ ] Dependencies are from trusted sources, up-to-date, and scanned (SCA).
+    *   [ ] Default credentials are changed.
+    *   [ ] Unnecessary services/ports are disabled.
+    *   [ ] HTTP security headers are implemented.
+*   **Code Quality & Review:**
+    *   [ ] Code is clear, maintainable, and follows standards.
+    *   [ ] Code reviews include security checks.
+    *   [ ] IaC is scanned for misconfigurations.
+
+## Appendix B: Glossary
+
+*   **DAST (Dynamic Application Security Testing):** Testing an application in its running state.
+*   **IaC (Infrastructure as Code):** Managing and provisioning infrastructure through machine-readable definition files.
+*   **MFA (Multi-Factor Authentication):** Authentication using two or more different factors.
+*   **PII (Personally Identifiable Information):** Information that can be used to identify an individual.
+*   **SAST (Static Application Security Testing):** Analyzing an application's source code or compiled versions to find security flaws.
+*   **SCA (Software Composition Analysis):** Tools that scan for known vulnerabilities in application dependencies.
+*   **SBOM (Software Bill of Materials):** A formal record containing the details and supply chain relationships of various components used in building software.
+*   **SDLC (Software Development Lifecycle):** The process of planning, creating, testing, deploying, and maintaining software.
+*   **SQLi (SQL Injection):** A code injection technique used to attack data-driven applications.
+*   **TLS (Transport Layer Security):** A cryptographic protocol designed to provide communications security over a computer network.
+*   **XSS (Cross-Site Scripting):** A type of security vulnerability typically found in web applications that enables attackers to inject client-side scripts into web pages viewed by other users.
+
+## Appendix C: Document Version History
+
+| Version | Date       | Author(s) | Summary of Changes                                  |
+| :------ | :--------- | :-------- | :-------------------------------------------------- |
+| 1.0     | 2023-10-27 | AI Agent  | Initial draft of the secure coding standard.        |
+| 1.1     | 2024-01-15 | Jane Doe  | Added section on IaC security and updated glossary. |

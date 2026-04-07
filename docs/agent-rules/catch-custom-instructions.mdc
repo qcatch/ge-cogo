@@ -1,0 +1,11 @@
+---
+description: Supplementary guidelines
+globs:
+alwaysApply: true
+---
+
+- All functions should be thoroughly documented with appropriate documentation comments such as JSDoc, PyDoc, PHPDoc or Javadoc etc.
+- Use UK English in your comments and documentation.
+- Properly type all parameters and return values
+- Handle errors gracefully and provide helpful error messages
+- Before using a Node package manager, check the `package.json`, `yarn.lock` and `package-lock.json` files for the correct package manager to use, if in doubt, use yarn.

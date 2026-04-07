@@ -1,0 +1,128 @@
+---
+description: Catch Logging Standard
+globs:
+alwaysApply: true
+---
+
+# **Purpose**
+
+A logging standard is a set of guidelines and procedures for recording and storing information related to IT systems and applications. The standard is designed to ensure that logs are consistent, accurate, and useful for troubleshooting and analysis.
+
+# **The standard**
+
+## **Scope**
+
+The scope of what is being logged by IT resources should ensure that;
+
+* systems are compliant with any applicable laws, regulations and or policies and that;
+* any potential operational, legal, security, reputational, performance or other business impacts can be mitigated.
+
+As such, a baseline for the scope of logging should consider:
+
+* Tracking the usage of the system and the flow of network traffic
+* Tracking normal and abnormal system events
+* Tracking access events and abnormal or unauthorised access attempts
+* Tracking system performance
+* Tracking notices, warnings and errors
+
+The content of log events needs to facilitate;
+
+* Root cause analysis, forensics and issue resolution
+* Capacity planning
+* Identifying system bugs and areas for improvement
+* Maintaining good availability of services
+* Ensuring the use of resources is authorised
+* Effective management of systems
+* Ensuring system security
+* Compliance with any applicable laws, regulations and or policies avoiding or mitigating legal liabilities and complying with legal obligations
+* Preventing and detecting crime
+* Recording the date/time and metadata of transactional-based events
+
+## **Log format**
+
+All logs must follow a standardised format that includes the following information:
+
+* Timestamp,
+* Source (e.g. server name, application name, class etc),
+* Event type (e.g. error, warning, information etc),
+* Description of the event.
+
+This information should be provided in the following format;
+
+`[%d] %p %c - %m`
+
+WHERE
+
+* `c` Category of the logging event in “a.b.c” format
+* `m` Log message
+* `p` Priority of the logging event (DEBUG INFO WARN ERROR FATAL)
+* `d` Date of the logging event in %Y-%m-%d %H:%M:%S format
+
+e.g.
+
+`[2022-01-10 12:00:00] DEBUG Namespace.ClassName - Something blew up and it was really bad`
+
+## **Log Retention**
+
+All logs must be retained for a specified period of time. This period may vary depending on the type of log and any applicable laws, regulations, or policies. In lieu of specific requirements, a retention period of 90 days should be used.
+
+## **Sensitive data**
+
+All sensitive information should be stripped from logs, which includes, but is not limited to;
+
+* Passwords, Access keys etc
+* Payment card information
+
+## **Log Storage**
+
+Logs should be stored in a secure location accessible only to authorised personnel. The storage location should also be regularly backed up to ensure that logs are not lost due to hardware failure.
+
+## **Log Rotation**
+
+To avoid log files becoming too large and unwieldy, logs should be rotated at regular intervals. This means that older logs are deleted or moved to an archive location.
+
+An example log rotate configuration is shown below;
+
+```none
+#{fetch :deploy_to}/shared/log/*.log {
+    daily
+    size 100M
+    missingok
+    rotate 90
+    compress
+    delaycompress
+    notifempty
+    create 640 www-data www-data
+    dateext
+    dateformat -#{fetch :log_alias}-%Y-%m-%d
+}
+```
+
+This has the following effects;
+
+* `daily` - Run the rotation operation daily
+* `size 100M` - If the log file is larger than 100MB then rotate
+* `missingok` - If the log file is missing, go on to the next one without issuing an error message
+* `rotate 21` - Keep 21 rotations worth of log files
+* `compress` - Compress logfiles when rotating
+* `delaycompress` - Keep the most recent rotation uncompressed
+* `notifempty` - Do not rotate the log if it is empty
+* `create 640 www-data www-data` - The owner and permissions of the rotated logs
+* `dateext` - Archive old versions of log files adding a daily extension like YYYYMMDD instead of simply adding a number
+* `dateformat -#{fetch :log_alias}-%Y-%m-%d` - Specify the extension for dateext using the notation similar to function.
+
+## **Log review**
+
+Logs should be reviewed regularly to detect any potential issues or anomalies. The review process should be documented, and any significant findings should be acted upon promptly.
+
+## **Log access**
+
+Access to logs should be restricted to authorised personnel only. Access should be granted on a need-to-know basis, and all access should be logged and audited.
+
+## **Log aggregation**
+
+Where possible, logs should be aggregated from multiple sources (e.g. servers, applications) to provide a complete picture of the IT environment. This may involve using a centralised logging system or other tools.
+
+## **Documentation**
+
+All logging procedures should be documented in detail, including the log format, retention periods, storage location, rotation schedule, review process, access controls, and aggregation methods. This documentation should be regularly reviewed and updated as necessary.

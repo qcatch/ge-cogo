@@ -1,0 +1,50 @@
+---
+description: Catch Alerting Standard
+globs:
+alwaysApply: true
+---
+
+## **Scope**
+
+The scope of what alerts are implemented should ensure that;
+
+* systems are compliant with any applicable laws, regulations and or policies and that;
+* any potential operational, legal, security, reputational, performance or other business impacts can be mitigated.
+
+As such a baseline for the scope of alerting should consider;
+
+* Potential or actual interruptions in service
+* Resource contention or exhaustion
+* Abnormal system events
+* Abnormal or unauthorised access attempts
+* Suspicious activity
+* Degraded system performance
+* Critical errors
+* Signal to noise ratio
+
+Alerting needs to facilitate;
+
+* Timely response
+* Improving visibility of (potential) issues
+* Improving signal to noise ratio
+
+## **Event types and severity thresholds**
+
+Any critical error, security incident, performance degradation, system failure or suspicious activity should trigger an alert if it is of a severity that may require urgent attention. Some criteria to consider when assessing severity include, but are not limited to;
+
+* Impact on services
+* Impact on business operations
+* Number of affected users
+* Duration of the event
+
+## **Alert notification channels**
+
+A standardised set of notification channels should be used a consistently across all alerts. These may include: slack, email, SMS.
+
+## **Alert recipients**
+
+Alerts will often contain some privileged information and access to alerts should be restricted to authorised personnel only. Access should be granted on a need-to-know basis, and all access should be logged and audited. As a rule this will include the Producer, Technical Lead(s) and Technical Director. While other personnel can be involved in alert review, the principle of least access should be applied.
+
+## **Alert documentation**
+
+All alerting procedures should be documented in detail, including the event types, criteria, notification channels, recipients, escalation process, tracking system, and testing process. This documentation should be regularly reviewed and updated as necessary.

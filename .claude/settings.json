@@ -1,0 +1,45 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(**/*.json)",
+      "Read(**/.env.example)",
+      "Read(**/docs/)",
+      "Read(.env.example)",
+      "Read(/docs/**)",
+      "Read(/features/**)",
+      "Read(/memory-bank/**)"
+    ],
+    "deny": [
+      "Read(**/*.cert)",
+      "Read(**/*.gpg)",
+      "Read(**/*.jks)",
+      "Read(**/*.key)",
+      "Read(**/*.keystore)",
+      "Read(**/*.p12)",
+      "Read(**/*.pem)",
+      "Read(**/*.tfvars)",
+      "Read(**/*credentials*)",
+      "Read(**/*id_rsa*)",
+      "Read(**/*password*)",
+      "Read(**/*secret*)",
+      "Read(**/*token*)",
+      "Read(**/.env.*)",
+      "Read(**/aws_credentials)",
+      "Read(**/secrets/)",
+      "Read(**/terraform.tfstate*)",
+      "Read(**/wp-config.php)",
+      "Read(.claude/settings.local.json)",
+      "Read(.env)",
+      "Read(.env.*)",
+      "Read(.scannerwork/)",
+      "Read(/config/env/)",
+      "Read(id_rsa)"
+    ],
+    "additionalDirectories": [
+      "/Users/qfogarty/Sites/Genesis/Azure/gen-agentforce-poc"
+    ]
+  },
+  "env": {
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "0"
+  }
+}

@@ -1,0 +1,185 @@
+---
+description: Catch Secure Coding Standard
+globs:
+alwaysApply: true
+---
+
+# Purpose
+
+To provide a clear, consistent standard for writing, organising, running, and maintaining automated tests across all codebases. The goal is to improve code quality, reduce defects, and accelerate delivery by building confidence in our releases.
+
+# Scope
+
+This standard applies to all production-grade source repositories (Note: A definition or checklist for "production-grade" should be created if it doesn't exist, e.g., in [`/docs/repository-standards.md`](/docs/repository-standards.md:0)). It is mandatory for all languages and frameworks and is enforced for new code. Legacy code MUST be brought into compliance when modified.
+
+# The Testing Pyramid
+
+We model our testing strategy on the **Testing Pyramid**. This ensures we have a fast, stable, and cost-effective test suite by focusing on a large base of unit tests, a smaller number of integration tests, and a very small number of E2E tests.
+
+* **Unit Tests:** Form the foundation. They are fast, cheap, and reliable.
+* **Contract & Integration Tests:** Test the connections between components.
+* **End-to-End (E2E) Tests:** Validate full user journeys. They are powerful but slower and more brittle.
+
+# Definitions
+
+| Term | Definition |
+|:---|:---|
+| **Unit Test** | Verifies a single unit (function, class, module) in isolation, mocking all external dependencies. |
+| **Integration Test** | Verifies the interaction between two or more components, such as a service and a database, or a UI component and its state management. |
+| **End-to-End (E2E) Test** | Validates a complete user workflow from the user's perspective, typically by driving a browser or API client. Exercises the full application stack. |
+| **Contract Test** | A special type of integration test that verifies two separate services (e.g., an API provider and a client) can communicate. It checks that both sides adhere to a shared "contract" without needing to test both services together. |
+| **Coverage** | Percentage of code lines, branches, or statements executed by the test suite. |
+| **Flaky Test** | A test that passes and fails intermittently without any code changes. |
+
+# Core Principles
+
+* **Deterministic:** Tests produce repeatable results, independent of order or environment.
+* **Isolated:** Unit tests mock external boundaries. Integration and E2E tests use dedicated, disposable environments.
+* **Fast Feedback:** Unit tests MUST complete in **<10 seconds** locally. Integration and E2E suites should complete in **<10 minutes** in CI.
+* **Readable & Maintainable:** Tests must be as clean as production code, using clear Arrange-Act-Assert (AAA) or Given-When-Then (GWT) structures. Tests MUST adhere to the project's clean code guidelines (see [`/docs/clean-code.md`](/docs/clean-code.md:0) (Note: This document should be created if it doesn't exist)).
+* **Shift-Left Quality:** Tests are written alongside production code and are a mandatory part of the code review process in pull requests.
+* **Pesticide Paradox Aware:** Test suites MUST be reviewed quarterly and updated upon major feature additions or significant refactoring to test for new conditions and prevent defect clusters from going undetected.
+
+# Tooling Requirements
+
+Repositories MUST declare test dependencies in version-controlled manifests. Common plumbing (Docker images, GitHub Actions) should be used for consistency.
+
+```yaml
+tooling:
+  - language: "JS/TS"
+    unitTestFramework: ["Jest", "@testing-library/react"]
+    mockingSpying: "Jest Mocks"
+    integrationE2EFramework: "Playwright"
+    contractTesting: "Pact"
+  - language: "Python"
+    unitTestFramework: ["pytest", "Hypothesis"]
+    mockingSpying: "unittest.mock"
+    integrationE2EFramework: ["Behave", "Playwright"]
+    contractTesting: "Pact"
+  - language: "Java/Kotlin"
+    unitTestFramework: "JUnit 5"
+    mockingSpying: "Mockito"
+    integrationE2EFramework: ["Cucumber", "Selenium"]
+    contractTesting: "Pact"
+  - language: "Go"
+    unitTestFramework: "built-in testing pkg"
+    mockingSpying: "GoMock"
+    integrationE2EFramework: ["Cypress", "Playwright"]
+    contractTesting: null
+  - language: "PHP"
+    unitTestFramework: "PHPUnit"
+    mockingSpying: "Mockery"
+    integrationE2EFramework: "Codeception"
+    contractTesting: "Pact"
+  - language: "C#"
+    unitTestFramework: ["NUnit", "xUnit"]
+    mockingSpying: ["Moq", "NSubstitute"]
+    integrationE2EFramework: ["Playwright", "Selenium"]
+    contractTesting: "Pact"
+```
+
+# Test Structure & Organisation
+
+Tests will be co-located with source code in a top-level `tests` directory to clearly separate test code from production code.
+
+```
+<repo>/
+ ├── src/
+ └── tests/
+      ├── unit/
+      │     └── <module>.spec.*
+      ├── contract/
+      │     └── <consumer-provider>.pact.*
+      └── integration/
+            └── <feature>.test.*
+```
+
+* **File Naming:**
+  * Unit Tests: `.spec.<ext>` (e.g., `user.spec.ts`)
+  * Integration/E2E Tests: `.test.<ext>` (e.g., `login-flow.test.ts`)
+* **Test Naming:** Use `should_<do_something>_when_<condition>` or BDD-style (`Given_a_state_When_an_action_occurs_Then_expect_a_result`).
+
+# Coding Standards for Tests
+
+* **Semantic Assertions:** Assert the outcome, not the implementation (e.g., `expect(user.isAdmin()).toBe(true)` is better than `expect(user.role).toBe("ADMIN")`).
+* **Mock at Boundaries:** Only mock external systems you don't own (e.g., payment gateways) or slow resources (databases, file systems) for unit tests.
+* **Use Test Data Factories:** Use libraries like **Faker** or custom factories to generate realistic test data. Avoid hard-coded "magic" values.
+* **No Sleeps:** Never use fixed `sleep()` or `wait()` calls. Use modern testing framework features for polling, waiting for elements, or handling async logic.
+* **One Logical Assertion:** A single test method should validate one logical concept.
+
+# Coverage & Quality Gates
+
+```yaml
+coverageGates:
+  guidance: "Coverage is a guide, not a goal. 100% coverage that is not meaningful is discouraged."
+  criticalModules:
+    description: "e.g., auth, payment. Critical modules MUST be explicitly defined (see [`/docs/critical-definitions.md`](/docs/critical-definitions.md:0) or tagged in code) (Note: This document should be created if it doesn't exist)."
+    lineCoverageThresholdPercent: 80
+    enforcement: "MUST have"
+  overallRepository:
+    lineCoverageThresholdPercent: 70
+    enforcement: "MUST maintain"
+  ciBehaviorOnDecrease: "The CI pipeline WILL FAIL if a pull request decreases overall coverage."
+```
+
+# Continuous Integration (CI) Requirements
+
+* All tests MUST run on every push and pull request via GitHub Actions.
+* Large test suites MUST be parallelised to maintain fast feedback.
+* Coverage reports MUST be uploaded to SonarQube.
+
+# Integration & E2E Testing Guidelines
+
+* Tests MUST run against a disposable environment spun up via Docker Compose or ephemeral cloud resources.
+* Tag tests (e.g., `@smoke`, `@regression`) for selective runs.
+* State must be idempotent. Tests are responsible for their own setup and teardown.
+
+# Flaky Test Management
+
+* Flaky tests are an urgent threat to pipeline stability and developer confidence.
+* They MUST be immediately quarantined (`@flaky` tag and excluded from CI runs) and a high-priority ticket created.
+* A flaky test MUST be fixed or deleted within **10 business days** (or an equivalent defined sprint length if universally accessible). Exceeding this requires Engineering Lead approval.
+
+# Non-Functional Testing
+
+* **Performance:** Critical user journeys MUST include E2E tests with performance budgets asserted. Refer to the defined budgets below:
+  ```yaml
+  performanceBudgets:
+    guidance: "Critical user journeys MUST include E2E tests with performance budgets asserted. Critical journeys MUST be explicitly defined (see [`/docs/critical-definitions.md`](/docs/critical-definitions.md:0) or tagged in code) (Note: This document should be created if it doesn't exist)."
+    examples:
+      - journeyName: "User Login API" # Example
+        metric: "API Response Time P95"
+        thresholdMilliseconds: 300
+        operator: "<"
+      - journeyName: "Main Product Page Load" # Example
+        metric: "Page Load Time (LCP)"
+        thresholdSeconds: 2
+        operator: "<"
+  ```
+* **Security:** Automated security scanning (e.g., OWASP ZAP, `npm audit`) MUST be included in the CI pipeline to catch baseline vulnerabilities.
+
+# Documentation & Reporting
+
+Each repository MUST maintain a `/docs/testing.md` file detailing:
+
+* The test strategy, including the pyramid hierarchy.
+* Instructions for running all tests locally.
+* Links to CI dashboards and coverage reports.
+
+# Review & Enforcement
+
+* **Code Review:** Pull requests without adequate, well-written tests will not be approved. Tests are considered adequate if they meet the criteria outlined in [`/docs/test-quality-checklist.md`](/docs/test-quality-checklist.md:0) (Note: This document should be created if it doesn't exist).
+* **Quality Guild:** A monthly quality review, led by the Quality Guild and attended by team Quality Champions, will analyse:
+  * Coverage trends and gaps.
+  * Flaky test rate and Mean Time to Recovery (MTTR).
+  * Test Escape Rate (bugs found in production that should have been caught).
+
+# Compliance & References
+
+* **Aligns with:**
+  * NZ Government Digital Service Standard 2024 – Principle 7 (Operate Secure Services).
+  * AS/NZS ISO/IEC 27001:2023 – Annex A, control 8.29 (Testing in development).
+* **Further Reading:**
+  * The Testing Pyramid – Martin Fowler
+  * "Growing Object-Oriented Software, Guided by Tests" – Freeman & Pryce
+  * "Accelerate" – Forsgren, Humble & Kim
