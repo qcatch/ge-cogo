@@ -44,17 +44,17 @@ export function StackedComparison({ currentCosts, electrifiedCosts, annualSaving
   const savingsPct = maxTotal > 0 ? (annualSavings / maxTotal) * 100 : 0
 
   return (
-    <div className="flex flex-col sm:flex-row gap-6 sm:gap-10 items-stretch justify-center">
+    <div className="flex flex-col sm:flex-row gap-6 sm:gap-10 items-start justify-center">
       {/* Left: Current Total Energy Costs */}
-      <div className="flex-1 max-w-[280px] mx-auto sm:mx-0 space-y-3">
-        <div className="text-center">
-          <p className="text-sm font-medium text-foreground">Current Total<br />Energy Costs</p>
-          <p className="text-3xl font-bold text-foreground mt-1">
+      <div className="flex-1 max-w-[280px] mx-auto sm:mx-0">
+        <div className="text-center h-[72px] flex flex-col justify-end">
+          <p className="text-sm font-medium text-foreground">Current Total Energy Costs</p>
+          <p className="text-3xl font-bold text-foreground">
             {formatCurrency(Math.round(currentCosts.total))}
             <span className="text-sm font-normal text-muted-foreground ml-1">/ year</span>
           </p>
         </div>
-        <div className="relative overflow-hidden rounded-lg" style={{ height: `${barHeight}px` }}>
+        <div className="relative overflow-hidden rounded-lg mt-3" style={{ height: `${barHeight}px` }}>
           {currentSegments.map((seg) => {
             const pct = maxTotal > 0 ? (seg.amount / maxTotal) * 100 : 0
             return (
@@ -76,15 +76,15 @@ export function StackedComparison({ currentCosts, electrifiedCosts, annualSaving
       </div>
 
       {/* Right: Fully Electrified */}
-      <div className="flex-1 max-w-[280px] mx-auto sm:mx-0 space-y-3">
-        <div className="text-center">
+      <div className="flex-1 max-w-[280px] mx-auto sm:mx-0">
+        <div className="text-center h-[72px] flex flex-col justify-end">
           <p className="text-sm font-medium text-primary">Fully Electrified</p>
-          <p className="text-3xl font-bold text-primary mt-1">
+          <p className="text-3xl font-bold text-primary">
             {formatCurrency(Math.round(electrifiedCosts.total))}
             <span className="text-sm font-normal text-muted-foreground ml-1">/ year</span>
           </p>
         </div>
-        <div className="relative overflow-hidden rounded-lg" style={{ height: `${barHeight}px` }}>
+        <div className="relative overflow-hidden rounded-lg mt-3" style={{ height: `${barHeight}px` }}>
           {/* Savings gap at top */}
           {annualSavings > 0 && (
             <div
