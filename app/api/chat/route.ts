@@ -44,17 +44,49 @@ The main savings come from: bundling your mobile and broadband with one provider
 
 For everyday health costs, make the most of community services: free flu vaccinations through your GP for eligible groups, Pharmac-subsidised medications (most common prescriptions are $5), and community health centres which often have lower consultation fees than private GPs. ACC covers injuries, so you don't need private cover for those.`,
 
-  default: `I'm your Genesis Savings Advisor! I can help you understand your household costs and find practical ways to save money across all your major expenses.
+  // TCE-specific responses
+  ev: `Switching to an EV is one of the biggest energy savings available to NZ households. At current prices, charging an EV at home costs roughly 14-15 cents per km (including road user charges at $76/1,000km), compared to about 28 cents per km for a petrol car.
+
+For a household driving 210km per week, that's a saving of around $1,400-1,800 per year on fuel alone — before you factor in lower maintenance costs (no oil changes, brake pads last longer, fewer moving parts). NZ's electricity is 85%+ renewable, so you're also cutting your transport emissions by 60-80%.
+
+Genesis offers EV-friendly electricity plans with cheaper overnight charging rates. If you're considering the switch, start by checking which EV models fit your driving needs and budget on the EECA Vehicle Total Cost of Ownership Calculator.`,
+
+  solar: `Solar is a strong investment for most NZ homeowners. A typical 5kW system costs around $9,000 installed and generates roughly $1,600/year in electricity value — giving you a payback period of about 5-6 years.
+
+From July 2026, all major NZ electricity retailers will be required to offer fair buyback rates for exported solar electricity. This is expected to improve solar economics further, especially for households that export significant power during the day.
+
+The best scenario is pairing solar with a heat pump hot water cylinder set to heat during the day — this uses your own solar generation directly and reduces grid dependence. Genesis offers solar installation and can help size a system for your roof and usage pattern.`,
+
+  heatpump: `Heat pumps are the single most efficient way to heat a NZ home. They cost roughly $200-300 per year to run — about a third of the cost of a gas heater ($700-900/year) and significantly less than electric resistive heating.
+
+The upfront cost of a quality heat pump is around $3,500-4,000 installed, which typically pays for itself within 4-8 years depending on your current heating type and how cold your region gets. In Canterbury, Otago, and Southland where heating demand is highest, payback is fastest.
+
+One practical tip: set your heat pump to 19-21°C and run it continuously at a low setting rather than cranking it up and turning it off. This is more efficient and keeps the house at a consistent comfortable temperature. Clean the filters every 2 months for optimal performance.`,
+
+  cooktop: `Switching from gas to induction cooking is more about lifestyle and safety than big cost savings — the annual running cost difference is relatively small (around $100-150/year). But there are real benefits.
+
+Induction cooktops are faster (water boils in half the time), more energy-efficient (90% vs 40% for gas), easier to clean (flat glass surface), and safer (no open flame, surface stays cool). They also improve indoor air quality — gas cooking releases nitrogen dioxide, which recent studies have linked to increased asthma risk.
+
+The upfront cost for a quality induction cooktop is around $2,500-2,700 installed. If you're already replacing a worn-out gas cooktop, the incremental cost is much smaller. Note: you'll need induction-compatible pots and pans (a magnet will stick to the base of compatible cookware).`,
+
+  roadmap: `The best approach to electrifying your home is to follow the roadmap in priority order — starting with the changes that give you the biggest return on investment.
+
+For most households, the order is: **1) Switch to an EV** (if you have a petrol car — the fuel savings are immediate and significant), **2) Install a heat pump** (if you're using gas or resistive heating), **3) Consider solar** (5-6 year payback with the July 2026 fair export rules), **4) Upgrade hot water to a heat pump cylinder** (long payback but set-and-forget savings).
+
+You don't have to do everything at once. Start with the highest-priority item and work down the list as budget allows. Each switch reduces your total energy cost and your reliance on fossil fuels. Genesis can help with EV plans, solar installation, and energy management — ask about any specific step.`,
+
+  default: `I'm your Genesis Cost of Living Assistant! I can help you understand your total energy costs and find ways to save across your household.
 
 Try asking me about:
+- **EV savings** — "How much would I save switching to an EV?"
+- **Heat pumps** — "Should I replace my gas heating?"
+- **Solar** — "Is solar worth it for my household?"
+- **Electrification roadmap** — "What should I do first?"
 - **Groceries** — "How can I cut my food bill?"
-- **Insurance** — "Am I paying too much for insurance?"
-- **Energy** — "How do I reduce my power bill?"
-- **Mortgage** — "Should I refinance?"
-- **Transport** — "How can I save on fuel?"
-- **Overall savings** — "Where's my biggest savings opportunity?"
+- **Insurance** — "Am I paying too much?"
+- **Overall savings** — "Where's my biggest opportunity?"
 
-I'm here to help you keep more of your money — without giving up the things you enjoy.`,
+I'm here to help you keep more of your money — starting with energy.`,
 }
 
 function getMessageText(messages: Array<{ role: string; parts?: Array<{ type: string; text?: string }>; content?: string }>): string {
@@ -69,6 +101,13 @@ function getMessageText(messages: Array<{ role: string; parts?: Array<{ type: st
 
 function getDemoResponse(text: string): string {
   const lower = text.toLowerCase()
+  // TCE-specific keywords (check first — more specific than generic energy/transport)
+  if (lower.includes('ev ') || lower.includes('electric vehicle') || lower.includes('charging') || lower.includes('electric car')) return demoResponses.ev
+  if (lower.includes('solar') || lower.includes('panels') || lower.includes('roof')) return demoResponses.solar
+  if (lower.includes('heat pump') || lower.includes('heatpump')) return demoResponses.heatpump
+  if (lower.includes('cooktop') || lower.includes('induction') || lower.includes('cooking')) return demoResponses.cooktop
+  if (lower.includes('roadmap') || lower.includes('step by step') || lower.includes('plan') || lower.includes('order')) return demoResponses.roadmap
+  // General keywords
   if (lower.includes('biggest') || lower.includes('most') || lower.includes('where should') || lower.includes('priority') || lower.includes('first') || lower.includes('opportunity')) return demoResponses.biggest
   if (lower.includes('grocer') || lower.includes('food') || lower.includes('supermarket') || lower.includes('pak')) return demoResponses.groceries
   if (lower.includes('insur') || lower.includes('premium') || lower.includes('cover')) return demoResponses.insurance

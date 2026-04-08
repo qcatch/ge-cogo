@@ -5,9 +5,11 @@ import { Menu, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 const navItems = [
-  { label: 'Dashboard', target: 'dashboard' },
-  { label: 'Spending', target: 'spending' },
-  { label: 'Insights', target: 'insights' },
+  { label: 'Home', target: 'home' },
+  { label: 'Calculator', target: 'calculator' },
+  { label: 'Results', target: 'results' },
+  { label: 'Household', target: 'household-costs' },
+  { label: 'Savings', target: 'savings' },
 ]
 
 interface HeaderProps {
@@ -40,7 +42,7 @@ export function Header({ onNavigate }: HeaderProps) {
           <div className="flex flex-col">
             <span className="text-sm font-semibold text-primary leading-tight">Genesis Energy</span>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground leading-tight">Cost of Living Advisor</span>
+              <span className="text-xs text-muted-foreground leading-tight">Cost of Living Assistant</span>
               <span className="bg-secondary text-secondary-foreground text-[10px] px-1.5 py-0.5 rounded-full font-medium leading-none">Prototype</span>
             </div>
           </div>

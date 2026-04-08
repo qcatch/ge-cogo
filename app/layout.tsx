@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Genesis | Household Cost Dashboard',
-  description: 'See where your money goes and get AI-powered tips to reduce household costs.',
+  title: 'Genesis | Cost of Living Assistant',
+  description: 'See what energy is really costing your household — and how much you could save by switching to electricity.',
   robots: { index: false, follow: false },
   icons: {
     icon: [
@@ -25,8 +25,8 @@ export const metadata: Metadata = {
     ],
   },
   openGraph: {
-    title: 'Genesis | Household Cost Dashboard',
-    description: 'See where your money goes and get AI-powered tips to reduce household costs.',
+    title: 'Genesis | Cost of Living Assistant',
+    description: 'See what energy is really costing your household — and how much you could save by switching to electricity.',
     type: 'website',
   },
 }
