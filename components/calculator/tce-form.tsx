@@ -1,18 +1,14 @@
 'use client'
 
-import { useEffect, useCallback, useRef } from 'react'
-import { useForm, useFieldArray, useWatch, Controller } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { householdInputSchema, type HouseholdInputForm } from '@/lib/energy-model/schemas'
-import { TCE_DEMO_PROFILES } from '@/lib/energy-model'
-import type { HouseholdInput } from '@/lib/energy-model'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { lookupRego, DEMO_PLATES, TCE_DEMO_PROFILES } from '@/lib/energy-model'
+import type { HouseholdInput, VehicleType, VehicleUsage, VehicleLookupResult } from '@/lib/energy-model'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Plus, Trash2, Sun } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Search, Car, Plus, Trash2, Zap, Home, Flame, Thermometer } from 'lucide-react'
 
 // ─── Option data ──────────────────────────────────────────────────────────────
 
@@ -27,45 +23,43 @@ const REGION_OPTIONS = [
   { value: 'southland', label: 'Southland' },
 ] as const
 
-const HEATING_OPTIONS = [
-  { value: 'heat-pump', label: 'Heat pump' },
-  { value: 'gas', label: 'Gas' },
-  { value: 'lpg', label: 'LPG' },
-  { value: 'electric-resistive', label: 'Electric (resistive)' },
-  { value: 'wood', label: 'Wood burner' },
+const MILEAGE_OPTIONS = [
+  { value: 'low' as VehicleUsage, label: 'Low', desc: '~5,000 km/yr' },
+  { value: 'medium' as VehicleUsage, label: 'Medium', desc: '~12,000 km/yr' },
+  { value: 'high' as VehicleUsage, label: 'High', desc: '~20,000 km/yr' },
+  { value: 'high' as VehicleUsage, label: 'Very High', desc: '~30,000 km/yr' },
 ] as const
 
-const WATER_HEATING_OPTIONS = [
-  { value: 'electric-resistive', label: 'Electric cylinder' },
+const HEATING_OPTIONS = [
+  { value: 'heat-pump', label: 'Heat pump', icon: Thermometer },
+  { value: 'gas', label: 'Gas', icon: Flame },
+  { value: 'electric-resistive', label: 'Electric', icon: Zap },
+  { value: 'wood', label: 'Wood', icon: Home },
+] as const
+
+const WATER_OPTIONS = [
+  { value: 'electric-resistive', label: 'Electric' },
   { value: 'gas', label: 'Gas' },
-  { value: 'lpg', label: 'LPG' },
   { value: 'heat-pump', label: 'Heat pump' },
-  { value: 'solar', label: 'Solar' },
 ] as const
 
 const COOKTOP_OPTIONS = [
   { value: 'gas', label: 'Gas' },
   { value: 'electric-resistive', label: 'Electric' },
   { value: 'induction', label: 'Induction' },
-  { value: 'lpg', label: 'LPG' },
-] as const
-
-const VEHICLE_TYPE_OPTIONS = [
-  { value: 'petrol', label: 'Petrol' },
-  { value: 'diesel', label: 'Diesel' },
-  { value: 'hybrid', label: 'Hybrid' },
-  { value: 'phev', label: 'Plug-in Hybrid' },
-  { value: 'electric', label: 'Electric' },
-  { value: 'none', label: 'No vehicle' },
-] as const
-
-const VEHICLE_USAGE_OPTIONS = [
-  { value: 'low', label: 'Low (~50km/wk)' },
-  { value: 'medium', label: 'Medium (~210km/wk)' },
-  { value: 'high', label: 'High (~400km/wk)' },
 ] as const
 
 const OCCUPANT_OPTIONS = [1, 2, 3, 4, 5] as const
+
+// ─── Vehicle entry state ──────────────────────────────────────────────────────
+
+interface VehicleEntry {
+  id: number
+  plate: string
+  lookup: VehicleLookupResult | null
+  lookupDone: boolean
+  mileage: VehicleUsage
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -75,45 +69,92 @@ interface TCEFormProps {
 }
 
 export function TCEForm({ onInputChange, defaultInput }: TCEFormProps) {
-  const { control, reset, setValue, getValues } = useForm<HouseholdInputForm>({
-    resolver: zodResolver(householdInputSchema),
-    defaultValues: defaultInput as HouseholdInputForm,
-    mode: 'onChange',
-  })
+  // Vehicle state
+  const [vehicles, setVehicles] = useState<VehicleEntry[]>([
+    { id: 1, plate: '', lookup: null, lookupDone: false, mileage: 'medium' },
+  ])
 
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: 'vehicles',
-  })
+  // Home energy state
+  const [region, setRegion] = useState(defaultInput.region)
+  const [occupants, setOccupants] = useState(defaultInput.occupants)
+  const [heating, setHeating] = useState(defaultInput.heating)
+  const [waterHeating, setWaterHeating] = useState(defaultInput.waterHeating)
+  const [cooktop, setCooktop] = useState(defaultInput.cooktop)
 
-  // Stable ref for the callback to avoid re-render loops
+  // Stable callback ref
   const onInputChangeRef = useRef(onInputChange)
   onInputChangeRef.current = onInputChange
 
-  // Watch all form values and propagate to parent
-  const watchedValues = useWatch({ control })
-
+  // Propagate changes to parent
   useEffect(() => {
-    const vehicles = (watchedValues.vehicles ?? []).map(v => ({
-      type: v?.type ?? 'petrol' as const,
-      usage: v?.usage ?? 'medium' as const,
-    }))
-    const values: HouseholdInput = {
-      region: watchedValues.region ?? 'auckland',
-      occupants: watchedValues.occupants ?? 4,
-      heating: watchedValues.heating ?? 'gas',
-      waterHeating: watchedValues.waterHeating ?? 'gas',
-      cooktop: watchedValues.cooktop ?? 'gas',
-      vehicles,
-      includeSolar: watchedValues.includeSolar ?? false,
-    }
-    onInputChangeRef.current(values)
-  }, [watchedValues])
+    const vehicleInputs = vehicles
+      .filter(v => v.lookup !== null)
+      .map(v => ({ type: v.lookup!.fuelType, usage: v.mileage }))
 
+    const input: HouseholdInput = {
+      region: region as HouseholdInput['region'],
+      occupants,
+      heating: heating as HouseholdInput['heating'],
+      waterHeating: waterHeating as HouseholdInput['waterHeating'],
+      cooktop: cooktop as HouseholdInput['cooktop'],
+      vehicles: vehicleInputs.length > 0
+        ? vehicleInputs
+        : [{ type: 'petrol' as VehicleType, usage: 'medium' as VehicleUsage }],
+      includeSolar: false,
+    }
+    onInputChangeRef.current(input)
+  }, [vehicles, region, occupants, heating, waterHeating, cooktop])
+
+  // Rego lookup
+  const handleLookup = useCallback((vehicleId: number) => {
+    setVehicles(prev => prev.map(v => {
+      if (v.id !== vehicleId) return v
+      const result = lookupRego(v.plate)
+      return { ...v, lookup: result, lookupDone: true }
+    }))
+  }, [])
+
+  const handlePlateChange = useCallback((vehicleId: number, plate: string) => {
+    setVehicles(prev => prev.map(v =>
+      v.id === vehicleId ? { ...v, plate: plate.toUpperCase(), lookup: null, lookupDone: false } : v
+    ))
+  }, [])
+
+  const handleMileageChange = useCallback((vehicleId: number, mileage: VehicleUsage) => {
+    setVehicles(prev => prev.map(v =>
+      v.id === vehicleId ? { ...v, mileage } : v
+    ))
+  }, [])
+
+  const addVehicle = useCallback(() => {
+    setVehicles(prev => [...prev, {
+      id: Date.now(), plate: '', lookup: null, lookupDone: false, mileage: 'medium',
+    }])
+  }, [])
+
+  const removeVehicle = useCallback((vehicleId: number) => {
+    setVehicles(prev => prev.filter(v => v.id !== vehicleId))
+  }, [])
+
+  // Quick-fill preset
   const handlePreset = useCallback((key: string) => {
     const profile = TCE_DEMO_PROFILES[key]
-    if (profile) reset(profile.input as HouseholdInputForm)
-  }, [reset])
+    if (!profile) return
+    const input = profile.input
+    setRegion(input.region)
+    setOccupants(input.occupants)
+    setHeating(input.heating)
+    setWaterHeating(input.waterHeating)
+    setCooktop(input.cooktop)
+    // Set vehicles from preset with fake lookup results
+    setVehicles(input.vehicles.map((v, i) => ({
+      id: Date.now() + i,
+      plate: '',
+      lookup: { plate: '', make: 'Demo', model: v.type.toUpperCase(), year: 2023, fuelType: v.type, fuelLabel: v.type },
+      lookupDone: true,
+      mileage: v.usage,
+    })))
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -121,257 +162,181 @@ export function TCEForm({ onInputChange, defaultInput }: TCEFormProps) {
       <div className="flex flex-wrap items-center justify-center gap-2">
         <span className="text-sm text-muted-foreground mr-1">Quick-fill:</span>
         {Object.entries(TCE_DEMO_PROFILES).map(([key, profile]) => (
-          <Button
-            key={key}
-            variant="outline"
-            size="sm"
-            onClick={() => handlePreset(key)}
-          >
+          <Button key={key} variant="outline" size="sm" onClick={() => handlePreset(key)}>
             {profile.label}
           </Button>
         ))}
       </div>
 
-      {/* Form card */}
-      <Card className="max-w-2xl mx-auto">
-        <CardContent className="py-6 px-5 space-y-8">
-
-          {/* Region + Occupants row */}
-          <div className="grid sm:grid-cols-2 gap-6">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Region</Label>
-              <Controller
-                control={control}
-                name="region"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select region" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {REGION_OPTIONS.map(r => (
-                        <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
+      <div className="max-w-2xl mx-auto space-y-6">
+        {/* ─── Step 1: Your Vehicle ──────────────────────────────── */}
+        <Card>
+          <CardContent className="py-5 px-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <Car className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold text-foreground">Your Vehicle</h3>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">People in household</Label>
-              <Controller
-                control={control}
-                name="occupants"
-                render={({ field }) => (
-                  <div className="flex gap-1">
-                    {OCCUPANT_OPTIONS.map(n => (
-                      <Button
-                        key={n}
-                        type="button"
-                        variant={field.value === n ? 'default' : 'outline'}
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => field.onChange(n)}
-                      >
-                        {n === 5 ? '5+' : n}
+            {vehicles.map((vehicle, idx) => (
+              <div key={vehicle.id} className="space-y-3">
+                {idx > 0 && <div className="border-t border-border pt-3" />}
+
+                {/* Rego input */}
+                <div className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={vehicle.plate}
+                        onChange={(e) => handlePlateChange(vehicle.id, e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleLookup(vehicle.id) }}
+                        placeholder="Enter rego e.g. ABC123"
+                        maxLength={7}
+                        className="flex-1 h-10 rounded-lg border border-border bg-input px-3 text-sm font-mono uppercase tracking-wider placeholder:text-muted-foreground placeholder:normal-case placeholder:tracking-normal focus:outline-none focus:ring-2 focus:ring-ring"
+                      />
+                      <Button size="sm" className="h-10" onClick={() => handleLookup(vehicle.id)}>
+                        <Search className="h-4 w-4 mr-1" />
+                        Look up
                       </Button>
-                    ))}
+                    </div>
+                  </div>
+                  {vehicles.length > 1 && (
+                    <Button variant="ghost" size="icon" className="shrink-0 text-muted-foreground hover:text-destructive" onClick={() => removeVehicle(vehicle.id)}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+
+                {/* Lookup result */}
+                {vehicle.lookupDone && vehicle.lookup && (
+                  <div className="flex items-center gap-3 rounded-lg bg-primary/5 border border-primary/20 px-3 py-2">
+                    <Car className="h-5 w-5 text-primary shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">
+                        {vehicle.lookup.year} {vehicle.lookup.make} {vehicle.lookup.model}
+                      </p>
+                      <Badge variant="outline" className="text-xs mt-0.5">{vehicle.lookup.fuelLabel}</Badge>
+                    </div>
                   </div>
                 )}
-              />
-            </div>
-          </div>
+                {vehicle.lookupDone && !vehicle.lookup && (
+                  <div className="rounded-lg bg-muted/50 border border-border px-3 py-2">
+                    <p className="text-sm text-muted-foreground">
+                      Vehicle not found. Try: {DEMO_PLATES.slice(0, 3).map(p => (
+                        <button key={p} className="text-primary font-mono mx-1 hover:underline" onClick={() => { handlePlateChange(vehicle.id, p); setTimeout(() => handleLookup(vehicle.id), 50) }}>{p}</button>
+                      ))}
+                    </p>
+                  </div>
+                )}
 
-          {/* Heating */}
-          <fieldset className="space-y-3">
-            <Label className="text-sm font-medium">Space heating</Label>
-            <Controller
-              control={control}
-              name="heating"
-              render={({ field }) => (
-                <RadioGroup
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  className="grid grid-cols-2 sm:grid-cols-3 gap-2"
-                >
-                  {HEATING_OPTIONS.map(opt => (
-                    <Label
-                      key={opt.value}
-                      className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 cursor-pointer transition-colors ${
-                        field.value === opt.value
-                          ? 'border-primary bg-primary/5 text-foreground'
-                          : 'border-border hover:border-primary/40'
-                      }`}
-                    >
-                      <RadioGroupItem value={opt.value} className="sr-only" />
-                      <span className="text-sm">{opt.label}</span>
-                    </Label>
-                  ))}
-                </RadioGroup>
-              )}
-            />
-          </fieldset>
+                {/* Mileage radio */}
+                {vehicle.lookup && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Annual mileage</Label>
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {MILEAGE_OPTIONS.map((opt, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleMileageChange(vehicle.id, opt.value)}
+                          className={`rounded-lg border px-2 py-2 text-center transition-colors ${
+                            vehicle.mileage === opt.value && opt.label === (vehicle.mileage === 'high' && i === 3 ? 'Very High' : MILEAGE_OPTIONS.find(m => m.value === vehicle.mileage)?.label)
+                              ? 'border-primary bg-primary/5 text-foreground'
+                              : vehicle.mileage === opt.value && i < 3
+                              ? 'border-primary bg-primary/5 text-foreground'
+                              : 'border-border hover:border-primary/40'
+                          }`}
+                        >
+                          <p className="text-xs font-medium">{opt.label}</p>
+                          <p className="text-[10px] text-muted-foreground">{opt.desc}</p>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
 
-          {/* Water heating */}
-          <fieldset className="space-y-3">
-            <Label className="text-sm font-medium">Hot water</Label>
-            <Controller
-              control={control}
-              name="waterHeating"
-              render={({ field }) => (
-                <RadioGroup
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  className="grid grid-cols-2 sm:grid-cols-3 gap-2"
-                >
-                  {WATER_HEATING_OPTIONS.map(opt => (
-                    <Label
-                      key={opt.value}
-                      className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 cursor-pointer transition-colors ${
-                        field.value === opt.value
-                          ? 'border-primary bg-primary/5 text-foreground'
-                          : 'border-border hover:border-primary/40'
-                      }`}
-                    >
-                      <RadioGroupItem value={opt.value} className="sr-only" />
-                      <span className="text-sm">{opt.label}</span>
-                    </Label>
-                  ))}
-                </RadioGroup>
-              )}
-            />
-          </fieldset>
-
-          {/* Cooktop */}
-          <fieldset className="space-y-3">
-            <Label className="text-sm font-medium">Cooktop</Label>
-            <Controller
-              control={control}
-              name="cooktop"
-              render={({ field }) => (
-                <RadioGroup
-                  value={field.value}
-                  onValueChange={field.onChange}
-                  className="grid grid-cols-2 sm:grid-cols-4 gap-2"
-                >
-                  {COOKTOP_OPTIONS.map(opt => (
-                    <Label
-                      key={opt.value}
-                      className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 cursor-pointer transition-colors ${
-                        field.value === opt.value
-                          ? 'border-primary bg-primary/5 text-foreground'
-                          : 'border-border hover:border-primary/40'
-                      }`}
-                    >
-                      <RadioGroupItem value={opt.value} className="sr-only" />
-                      <span className="text-sm">{opt.label}</span>
-                    </Label>
-                  ))}
-                </RadioGroup>
-              )}
-            />
-          </fieldset>
-
-          {/* Solar checkbox */}
-          <div className="flex items-center gap-3">
-            <Controller
-              control={control}
-              name="includeSolar"
-              render={({ field }) => (
-                <Checkbox
-                  id="include-solar"
-                  checked={field.value ?? false}
-                  onCheckedChange={field.onChange}
-                />
-              )}
-            />
-            <Label htmlFor="include-solar" className="text-sm cursor-pointer flex items-center gap-2">
-              <Sun className="h-4 w-4 text-primary" />
-              Include rooftop solar in electrified scenario
-            </Label>
-          </div>
-
-          {/* Vehicles */}
-          <fieldset className="space-y-3">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium">Vehicles</Label>
-              {fields.length < 4 && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => append({ type: 'petrol', usage: 'medium' })}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add vehicle
-                </Button>
-              )}
-            </div>
-
-            {fields.length === 0 && (
-              <p className="text-sm text-muted-foreground py-2">
-                No vehicles — add one to include transport costs.
-              </p>
+            {vehicles.length < 3 && (
+              <Button variant="ghost" size="sm" onClick={addVehicle} className="text-xs">
+                <Plus className="h-3 w-3 mr-1" /> Add another vehicle
+              </Button>
             )}
+          </CardContent>
+        </Card>
 
-            <div className="space-y-3">
-              {fields.map((field, index) => (
-                <div key={field.id} className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground w-10 shrink-0">
-                    Car {index + 1}
-                  </span>
-
-                  <Controller
-                    control={control}
-                    name={`vehicles.${index}.type`}
-                    render={({ field: f }) => (
-                      <Select value={f.value} onValueChange={f.onChange}>
-                        <SelectTrigger className="flex-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {VEHICLE_TYPE_OPTIONS.map(opt => (
-                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-
-                  <Controller
-                    control={control}
-                    name={`vehicles.${index}.usage`}
-                    render={({ field: f }) => (
-                      <Select value={f.value} onValueChange={f.onChange}>
-                        <SelectTrigger className="w-[180px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {VEHICLE_USAGE_OPTIONS.map(opt => (
-                            <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="shrink-0 text-muted-foreground hover:text-destructive"
-                    onClick={() => remove(index)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+        {/* ─── Step 2: Your Home Energy ──────────────────────────── */}
+        <Card>
+          <CardContent className="py-5 px-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <Zap className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold text-foreground">Your Home Energy</h3>
             </div>
-          </fieldset>
 
-        </CardContent>
-      </Card>
+            {/* EIQ placeholder */}
+            <Button variant="outline" className="w-full justify-start text-muted-foreground" disabled>
+              <Zap className="h-4 w-4 mr-2 text-primary" />
+              Connect your energy bills via EIQ
+              <Badge variant="secondary" className="ml-auto text-[10px]">Coming soon</Badge>
+            </Button>
+
+            <p className="text-xs text-muted-foreground">Or tell us about your home:</p>
+
+            {/* Region + Occupants */}
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Region</Label>
+                <Select value={region} onValueChange={(v) => setRegion(v as HouseholdInput['region'])}>
+                  <SelectTrigger className="w-full h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {REGION_OPTIONS.map(r => <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">People</Label>
+                <div className="flex gap-1">
+                  {OCCUPANT_OPTIONS.map(n => (
+                    <Button key={n} type="button" variant={occupants === n ? 'default' : 'outline'} size="sm" className="flex-1 h-9" onClick={() => setOccupants(n)}>
+                      {n === 5 ? '5+' : n}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Heating / Water / Cooktop — compact row per field */}
+            <div className="grid sm:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Heating</Label>
+                <Select value={heating} onValueChange={(v) => setHeating(v as HouseholdInput['heating'])}>
+                  <SelectTrigger className="w-full h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {HEATING_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Hot water</Label>
+                <Select value={waterHeating} onValueChange={(v) => setWaterHeating(v as HouseholdInput['waterHeating'])}>
+                  <SelectTrigger className="w-full h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {WATER_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Cooktop</Label>
+                <Select value={cooktop} onValueChange={(v) => setCooktop(v as HouseholdInput['cooktop'])}>
+                  <SelectTrigger className="w-full h-9"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {COOKTOP_OPTIONS.map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   )
 }

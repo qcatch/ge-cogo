@@ -139,6 +139,7 @@ export type {
   SwitchRecommendation,
   EmissionsResult,
   TCEResult,
+  ElectrificationToggles,
 } from './types'
 
 // Re-export constants needed by UI
@@ -160,3 +161,7 @@ export type { TCEDemoProfile } from './demo-profiles'
 // Re-export schemas
 export { householdInputSchema, energyRegions } from './schemas'
 export type { HouseholdInputForm } from './schemas'
+
+// Re-export rego lookup
+export { lookupRego, DEMO_PLATES } from './rego-lookup'
+export type { VehicleLookupResult } from './rego-lookup'

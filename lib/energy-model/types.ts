@@ -91,3 +91,12 @@ export interface TCEResult {
   emissions: EmissionsResult
   consumption: ConsumptionBreakdown
 }
+
+/** Which electrification investments the user has toggled on */
+export interface ElectrificationToggles {
+  heating: boolean
+  waterHeating: boolean
+  cooktop: boolean
+  vehicles: boolean
+  solar: boolean
+}
