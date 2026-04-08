@@ -4,12 +4,14 @@ import { useRef, useCallback, useState, useMemo } from 'react'
 import { Header } from '@/components/layout/header'
 import { Dashboard } from '@/components/dashboard'
 import { calculateTCE, TCE_DEMO_PROFILES } from '@/lib/energy-model'
-import type { TCEResult, HouseholdInput } from '@/lib/energy-model'
+import type { TCEResult, HouseholdInput, ElectrificationToggles } from '@/lib/energy-model'
 import { formatCurrency, formatPercent } from '@/lib/format'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { TCEForm } from '@/components/calculator/tce-form'
+import { StackedComparison } from '@/components/results/stacked-comparison'
 import { PowerCircleOffers } from '@/components/offers/power-circle-offers'
 import { SavingsPlaybook } from '@/components/savings/savings-playbook'
 import { TotalCostView } from '@/components/household/total-cost-view'
@@ -17,9 +19,6 @@ import { SavingsSummaryCard } from '@/components/share/savings-summary-card'
 import { ConversationPanel } from '@/components/ai/conversation-panel'
 import { CommandBar } from '@/components/ai/command-bar'
 import { buildTCESystemPrompt, generateTCEStarters } from '@/lib/tce-context'
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-} from 'recharts'
 import { Zap, ArrowDown, ArrowRight, Leaf, ChevronRight, MessageSquare, Info } from 'lucide-react'
 
 export default function Home() {
@@ -31,6 +30,25 @@ export default function Home() {
   const tceResult: TCEResult = useMemo(() => {
     return calculateTCE(householdInput)
   }, [householdInput])
+
+  // Electrification toggles — all ON by default (fully electrified)
+  const [toggles, setToggles] = useState<ElectrificationToggles>({
+    heating: true, waterHeating: true, cooktop: true, vehicles: true, solar: false,
+  })
+
+  // Build a partially-electrified input based on toggle state
+  const electrifiedInput = useMemo((): HouseholdInput => ({
+    ...householdInput,
+    heating: toggles.heating ? 'heat-pump' : householdInput.heating,
+    waterHeating: toggles.waterHeating ? 'heat-pump' : householdInput.waterHeating,
+    cooktop: toggles.cooktop ? 'induction' : householdInput.cooktop,
+    vehicles: toggles.vehicles
+      ? householdInput.vehicles.map(v => ({ ...v, type: 'electric' as const }))
+      : householdInput.vehicles,
+    includeSolar: toggles.solar,
+  }), [householdInput, toggles])
+
+  const electrifiedResult = useMemo(() => calculateTCE(electrifiedInput), [electrifiedInput])
 
   // AI chat state
   const [chatOpen, setChatOpen] = useState(false)
@@ -62,29 +80,17 @@ export default function Home() {
     }
   }, [])
 
-  // Prepare comparison chart data
-  const chartData = [
-    {
-      category: 'Electricity',
-      current: Math.round(tceResult.currentCosts.electricity),
-      electrified: Math.round(tceResult.electrifiedCosts.electricity),
-    },
-    {
-      category: 'Gas',
-      current: Math.round(tceResult.currentCosts.gas),
-      electrified: Math.round(tceResult.electrifiedCosts.gas),
-    },
-    {
-      category: 'Petrol',
-      current: Math.round(tceResult.currentCosts.petrol),
-      electrified: Math.round(tceResult.electrifiedCosts.petrol),
-    },
-    {
-      category: 'Vehicle RUC',
-      current: Math.round(tceResult.currentCosts.vehicleRuc),
-      electrified: Math.round(tceResult.electrifiedCosts.vehicleRuc),
-    },
-  ].filter(d => d.current > 0 || d.electrified > 0)
+  // Map roadmap appliance → toggle key
+  function mapApplianceToToggle(appliance: string): keyof ElectrificationToggles | null {
+    if (appliance.includes('Heat Pump (Heating)')) return 'heating'
+    if (appliance.includes('Hot Water')) return 'waterHeating'
+    if (appliance.includes('Cooktop') || appliance.includes('Induction')) return 'cooktop'
+    if (appliance.includes('EV')) return 'vehicles'
+    if (appliance.includes('Solar')) return 'solar'
+    return null
+  }
+
+  const electrifiedSavings = tceResult.currentCosts.total - electrifiedResult.currentCosts.total
 
   return (
     <main className="flex flex-col min-h-screen">
@@ -193,9 +199,9 @@ export default function Home() {
 
               {/* Electrified */}
               <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-1">Fully Electrified</p>
+                <p className="text-sm text-muted-foreground mb-1">Electrified</p>
                 <p className="text-5xl md:text-6xl font-bold text-primary">
-                  {formatCurrency(Math.round(tceResult.electrifiedCosts.total))}
+                  {formatCurrency(Math.round(electrifiedResult.currentCosts.total))}
                 </p>
                 <p className="text-sm text-muted-foreground mt-1">per year</p>
               </div>
@@ -205,79 +211,53 @@ export default function Home() {
             <div className="inline-flex items-center gap-3 bg-accent/30 rounded-xl px-6 py-3">
               <Zap className="h-5 w-5 text-primary" />
               <span className="text-lg font-semibold text-foreground">
-                You could save {formatCurrency(tceResult.annualSavings)} per year
+                You could save {formatCurrency(electrifiedSavings)} per year
               </span>
               <Badge variant="secondary" className="text-xs">
-                {formatPercent(tceResult.savingsPercent)} less
+                {tceResult.currentCosts.total > 0 ? formatPercent(Math.round((electrifiedSavings / tceResult.currentCosts.total) * 100)) : '0%'} less
               </Badge>
             </div>
           </div>
 
-          {/* Comparison Chart */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold text-foreground text-center">Cost Breakdown: Current vs Electrified</h3>
-            <Card>
-              <CardContent className="py-6 px-4">
-                <ResponsiveContainer width="100%" height={320}>
-                  <BarChart data={chartData} margin={{ top: 16, right: 24, left: 8, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                    <XAxis dataKey="category" tick={{ fontSize: 13 }} />
-                    <YAxis tickFormatter={(v: number) => `$${v.toLocaleString()}`} tick={{ fontSize: 12 }} />
-                    <Tooltip
-                      formatter={(value: number) => [`$${value.toLocaleString()}`, undefined]}
-                      contentStyle={{ borderRadius: '8px', border: '1px solid var(--border)' }}
-                    />
-                    <Legend />
-                    <Bar dataKey="current" name="Current" fill="var(--chart-3)" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="electrified" name="Electrified" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Stacked Comparison Chart + Toggle Switches */}
+          <div className="grid md:grid-cols-[1fr_300px] gap-8 items-start">
+            {/* Chart */}
+            <StackedComparison
+              currentCosts={tceResult.currentCosts}
+              electrifiedCosts={electrifiedResult.currentCosts}
+              annualSavings={electrifiedSavings}
+            />
 
-          {/* Switching Roadmap */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold text-foreground text-center">Your Electrification Roadmap</h3>
-            <p className="text-sm text-muted-foreground text-center">Ranked by return on investment — best value first</p>
-            <div className="grid gap-3 md:grid-cols-2">
-              {tceResult.roadmap.map((item) => (
-                <Card key={item.appliance} className="hover:border-primary/40 transition-colors">
-                  <CardContent className="py-4 px-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs font-mono">
-                            #{item.priority}
-                          </Badge>
-                          <p className="font-medium text-foreground">{item.appliance}</p>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
-                        <div className="flex items-center gap-4 mt-3">
-                          <div>
-                            <p className="text-xs text-muted-foreground">Annual saving</p>
-                            <p className="text-sm font-semibold text-primary">{formatCurrency(item.annualSaving)}/yr</p>
-                          </div>
-                          {item.upfrontCost > 0 && (
-                            <div>
-                              <p className="text-xs text-muted-foreground">Upfront cost</p>
-                              <p className="text-sm font-medium text-foreground">{formatCurrency(item.upfrontCost)}</p>
-                            </div>
-                          )}
-                          {item.upfrontCost > 0 && item.paybackYears > 0 && item.paybackYears < Infinity && (
-                            <div>
-                              <p className="text-xs text-muted-foreground">Payback</p>
-                              <p className="text-sm font-medium text-foreground">
-                                {item.paybackYears > 20 ? '20+ years' : `${item.paybackYears} years`}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
+            {/* Electrification toggles */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-semibold text-foreground">Electrification Investments</h3>
+              <p className="text-xs text-muted-foreground">Toggle switches to see how each investment changes your costs</p>
+              {tceResult.roadmap.map(item => {
+                const key = mapApplianceToToggle(item.appliance)
+                if (!key) return null
+                return (
+                  <label
+                    key={item.appliance}
+                    className={`flex items-center justify-between gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                      toggles[key] ? 'border-primary/40 bg-primary/5' : 'border-border hover:bg-muted/50'
+                    }`}
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">{item.appliance}</p>
+                      {item.upfrontCost > 0 && (
+                        <p className="text-xs text-muted-foreground">est. {formatCurrency(item.upfrontCost)}</p>
+                      )}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs font-semibold text-primary">{formatCurrency(item.annualSaving)}/yr</span>
+                      <Checkbox
+                        checked={toggles[key]}
+                        onCheckedChange={(checked) => setToggles(prev => ({ ...prev, [key]: !!checked }))}
+                      />
+                    </div>
+                  </label>
+                )
+              })}
             </div>
           </div>
 
