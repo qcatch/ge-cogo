@@ -59,7 +59,7 @@ Per BHL — contain it to total cost of energy. The following POC features will 
 |---|----------|---------|-----------|
 | D1 | **Where do we host this?** | Vercel Pro or Azure App Service | Before deployment |
 | D2 | **What domain?** | e.g. `calculator.genesisenergy.co.nz` | Before deployment |
-| D3 | **How do we keep energy pricing current?** | Manual quarterly JSON update or live API from EMI/Electricity Authority | Before launch |
+| D3 | **How do we keep energy pricing current?** | Manual quarterly JSON update (only option — no retail pricing API exists in NZ) | Before launch |
 | D4 | **How does the wishlist save work?** | Browser-only (localStorage) or server-side (requires user identity) | Before Phase 1 build |
 | D5 | **What Genesis offers should be linked?** | Specific product pages, Cogo flows, or both | Before Phase 2 build |
 
@@ -72,15 +72,111 @@ Per BHL — contain it to total cost of energy. The following POC features will 
 | A3 | **Legal review** | Genesis Legal — privacy policy, terms of use, AI disclaimer, savings disclaimer | 1–2 weeks |
 | A4 | **IT / Security review** | Genesis IT / InfoSec — before going on a genesisenergy.co.nz subdomain | 1–2 weeks |
 
-### Accounts & Access
+### External APIs
+
+We need 3 external APIs. Two are free and open, one is paid. There is no API for residential electricity/gas pricing in NZ — we handle that with a manual update process.
+
+#### API 1: NZTA Motor Vehicle Register — Rego Lookup
+
+Looks up a NZ plate number and returns vehicle make, model, year, fuel type, and engine capacity.
+
+| | |
+|---|---|
+| **Provider** | Waka Kotahi (NZTA) Open Data Portal |
+| **Endpoint** | ArcGIS FeatureServer — query with `where=PLATE='ABC123'` |
+| **Auth** | None — public open data |
+| **Cost** | Free (Creative Commons licence) |
+| **Format** | JSON |
+| **Fields we use** | Plate, make, model, year, fuel type, CC rating, body type, motive power |
+| **Update frequency** | Monthly snapshot of all registered NZ vehicles |
+| **Rate limits** | ArcGIS standard (sufficient for our use case) |
+| **Lead time** | **Ready now — no registration required** |
+| **Link** | [NZTA Motor Vehicle Register API](https://opendata-nzta.opendata.arcgis.com/datasets/motor-vehicle-register-api) |
+
+> **Limitation:** The MVR has fuel type but **not fuel economy** (L/100km). For fuel economy data we supplement with the EECA Fuelsaver API below.
+
+#### API 2: EECA Fuelsaver — Vehicle Fuel Economy
+
+Looks up a plate or VIN and returns fuel economy (L/100km or kWh/100km for EVs), CO2 emissions, and energy star ratings. This fills the gap the NZTA data doesn't cover.
+
+| | |
+|---|---|
+| **Provider** | EECA (Energy Efficiency and Conservation Authority) |
+| **Endpoint** | `https://fuelsaver.govt.nz/api/?params={"api":"labels","plate":"ABC123","login":"[token]"}` |
+| **Auth** | Login token — register at [resources.fuelsaver.govt.nz](https://resources.fuelsaver.govt.nz) |
+| **Cost** | Free for commercial use |
+| **Format** | JSON |
+| **Fields we use** | Fuel economy (L/100km for petrol/diesel, kWh/100km for EVs), CO2 g/km, star ratings |
+| **Query by** | Plate number, VIN, or model code |
+| **Lead time** | **1–2 days** (register, receive token, test) |
+| **Link** | [EECA Fuelsaver API](https://fuelsaver.govt.nz/api/) |
+
+#### API 3: Anthropic Claude — AI Advisor
+
+Powers the EIQ AI Energy Advisor (streaming chat grounded in the user's energy data).
+
+| | |
+|---|---|
+| **Provider** | Anthropic |
+| **Endpoint** | `https://api.anthropic.com/v1/messages` |
+| **Auth** | API key (server-side only, via `x-api-key` header) |
+| **Cost** | Claude Sonnet 4: **$3/MTok input, $15/MTok output**. Estimated **$150–500/month** at ~10k chat sessions |
+| **Format** | JSON + SSE streaming |
+| **Model** | Claude Sonnet 4 (balanced cost/quality for conversational use) |
+| **Rate limits** | Tier-based, scales with spend history. Default ~50 req/min — sufficient for launch |
+| **Cost optimisation** | Prompt caching reduces repeated system prompt cost by ~90%. We should enable this since every chat session sends the same base system prompt. |
+| **Lead time** | **1–2 days** — Genesis IT signs up at [console.anthropic.com](https://console.anthropic.com), adds billing, generates key |
+| **Fallback** | POC demo mode works without an API key (keyword-matched responses, already built) |
+| **Link** | [Anthropic API Pricing](https://platform.claude.com/docs/en/about-claude/pricing) |
+
+#### No API: Electricity & Gas Pricing
+
+There is **no public API** for residential electricity or gas tariffs in New Zealand.
+
+| What Exists | What It Covers | Why It Doesn't Work For Us |
+|---|---|---|
+| Electricity Authority EMI APIs | Wholesale spot prices, dispatch data | Wholesale only — not residential retail tariffs |
+| Powerswitch | Residential plan comparison by region | No public API — consumer website only |
+| EA Data & Insights Hub | Downloadable aggregate datasets | Aggregate data, not tariff-level pricing |
+
+**Our approach:** Maintain a JSON config file (`/data/energy-pricing.json`) with regional residential rates sourced from Powerswitch published averages and MBIE quarterly energy statistics. Updated manually each quarter. Display "Pricing data as of [date]" on the results page. A non-developer at Genesis can update the file.
+
+This is the same approach the Cogo Go Electric calculator uses — static regional averages, not live pricing.
+
+#### No API: Fuel Prices (CSV Download)
+
+MBIE publishes weekly national average fuel prices as a free CSV download — not an API, but simple to consume.
+
+| | |
+|---|---|
+| **Provider** | MBIE |
+| **URL** | [weekly-table.csv](https://www.mbie.govt.nz/assets/Data-Files/Energy/Weekly-fuel-price-monitoring/weekly-table.csv) |
+| **Cost** | Free (Creative Commons 4.0 NZ) |
+| **Fields** | Regular petrol, premium petrol, diesel — board prices, adjusted retail, taxes, margins |
+| **Regional** | National averages only (no regional breakdown) |
+| **Update** | Weekly (previous week's data) |
+| **Our approach** | Parse latest row from CSV into our pricing JSON config. Can be automated or updated manually. |
+| **Link** | [MBIE Weekly Fuel Price Monitoring](https://www.mbie.govt.nz/building-and-energy/energy-and-natural-resources/energy-statistics-and-modelling/energy-statistics/weekly-fuel-price-monitoring) |
+
+#### API Summary
+
+| # | API | Cost | Auth Required | Lead Time | Status |
+|---|-----|------|--------------|-----------|--------|
+| 1 | NZTA Motor Vehicle Register | Free | None | Ready now | Can start integrating |
+| 2 | EECA Fuelsaver (fuel economy) | Free | Registration token | 1–2 days | Register at fuelsaver.govt.nz |
+| 3 | Anthropic Claude | ~$150–500/mo | API key + billing | 1–2 days | Genesis IT sets up account |
+| 4 | MBIE Fuel Prices | Free | None | Ready now | CSV download, parse weekly |
+| 5 | Electricity/Gas pricing | N/A | N/A | N/A | **No API exists** — manual quarterly JSON |
+
+**Total monthly API cost: ~$150–500** (Anthropic is the only paid API. Everything else is free.)
+
+### Accounts & Access (Non-API)
 
 | # | What | Who Sets It Up | Lead Time | Fallback If Delayed |
 |---|------|---------------|-----------|-------------------|
-| S1 | **Anthropic API key** (production) | Genesis IT / Engineering | 1–2 days | Demo mode works without it |
-| S2 | **Hosting account** (Vercel Pro or Azure) | Genesis IT | 1–2 weeks | Vercel free tier for UAT |
-| S3 | **DNS entry** for subdomain | Genesis IT / Network | 1 week | Vercel default URL for UAT |
-| S4 | **NZTA Vehicle Register API** access | Engineering (register with Waka Kotahi) | 1–3 weeks | Manual vehicle entry (already built) |
-| S5 | **Analytics property** (GA4) | Genesis Marketing / Digital | 1–2 days | No analytics at launch |
+| S1 | **Hosting account** (Vercel Pro or Azure) | Genesis IT | 1–2 weeks | Vercel free tier for UAT |
+| S2 | **DNS entry** for subdomain | Genesis IT / Network | 1 week | Vercel default URL for UAT |
+| S3 | **Analytics property** (GA4) | Genesis Marketing / Digital | 1–2 days | No analytics at launch |
 
 ### Content & Data
 
@@ -97,8 +193,8 @@ Per BHL — contain it to total cost of energy. The following POC features will 
 flowchart TD
     A[Stakeholder approval<br/>A1] --> B[Brand sign-off<br/>A2]
     A --> C[Legal review<br/>A3]
-    A --> D[Hosting + domain<br/>S2 + S3]
-    A --> E[Anthropic API key<br/>S1]
+    A --> D[Hosting + domain<br/>S1 + S2]
+    A --> E[Anthropic API key<br/>API 3]
 
     B --> F[Phase 1 — Core Build<br/>2.5 weeks]
     C --> F
@@ -106,7 +202,7 @@ flowchart TD
     E --> F
 
     F --> G[Phase 2 — Data & Offers<br/>1.5 weeks]
-    S4[NZTA API access<br/>S4] --> G
+    API12[NZTA + EECA APIs<br/>APIs 1 & 2 — free, ready now] --> G
     C1[Genesis offer details<br/>C1] --> G
 
     F --> H[Phase 3 — QA & Launch<br/>1.5 weeks]
@@ -612,8 +708,8 @@ gantt
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
-| No clean API for NZ electricity/gas rates | High | Medium | Manual quarterly JSON update — admin-friendly, no code changes needed |
-| NZTA rego API has rate limits or gaps | Medium | Medium | Graceful fallback to manual entry (already built) |
+| Electricity/gas pricing goes stale between quarterly updates | Medium | Medium | Show "as of [date]" on results. Same approach Cogo uses. |
+| NZTA or EECA API has rate limits or downtime | Low | Medium | Both are free public APIs. Graceful fallback to manual vehicle entry (already built). Cache lookups for 24hrs. |
 | Claude API costs spike with traffic | Medium | High | Rate limiting, per-session caps, shorter system prompts |
 | Savings estimates publicly challenged | Medium | High | Strong methodology section + disclaimers. Same data sources as Cogo (Rewiring Aotearoa) |
 | Genesis IT blocks Vercel | Low | High | Azure App Service as fallback |
@@ -632,5 +728,5 @@ gantt
 | 4 | AI advisor uses Anthropic Claude | **Decided** (POC validated) | Engineering |
 | 5 | All calculation runs client-side | **Decided** (POC validated) | Engineering |
 | 6 | Host on Vercel vs Azure | **Open** | IT |
-| 7 | Energy pricing: manual quarterly vs live API | **Open** | Product |
+| 7 | Energy pricing: manual quarterly JSON update (no NZ retail pricing API exists) | **Decided** (no alternative) | Engineering |
 | 8 | Which Genesis offers to link to | **Open** | Marketing / Product |
