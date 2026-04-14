@@ -10,17 +10,17 @@
 
 A Genesis-owned Total Energy Cost Calculator that shows NZ households the true cost of their energy across electricity, gas, and petrol — and what they'd save by going electric.
 
-The tool lets customers enter their household energy profile (or look up their vehicle via rego), see their current total energy cost, then toggle electrification options on and off to see the impact in real-time. They can save an electrification wishlist and connect to Genesis offers for each upgrade.
+The tool lets customers enter their household energy profile (or look up their vehicle via rego, or upload a bill for data capture), see their current total energy cost, then toggle electrification options on and off to see the impact in real-time. They can save an electrification wishlist and connect to Genesis offers for each upgrade.
 
-This complements the existing Cogo Go Electric calculator — Cogo handles the installer marketplace and purchase journey; the TCE Calculator handles awareness, education, and the AI-powered conversation that no competitor has.
+This complements the existing Cogo Go Electric calculator — Cogo handles the installer marketplace and purchase journey; the TCE Calculator handles awareness and education.
 
 ### What's In Scope
 
-Per BHL's brief:
+Per BHL's brief (updated 14 April):
 
 1. **Total cost of energy inputs** — region, household size, heating type, water heating, cooktop, vehicles
 2. **Vehicle rego lookup** — seamless data capture via NZTA, with manual entry as fallback
-3. **EIQ / AI Energy Advisor** — conversational AI grounded in the customer's specific energy data
+3. **Bill upload** — upload an energy bill for data capture (Claude Vision OCR extracts usage data)
 4. **Current total energy cost output** — breakdown across electricity, gas, and petrol with stacked bar chart
 5. **Electrified cost output** — what the same household would cost fully electric
 6. **Electrification toggles** — independently toggle heating, hot water, cooking, transport, and solar on/off with real-time cost recalculation
@@ -33,9 +33,9 @@ Per BHL — contain it to total cost of energy. The following POC features will 
 
 | POC Feature | What It Does | Why It's Out | Status |
 |-------------|-------------|-------------|--------|
+| **EIQ / AI Energy Advisor** | Conversational AI panel grounded in user's energy data, streaming chat via Claude | BHL: "no need for AI chat at MVP" | Remove for MVP (can add later) |
 | **Household Cost Dashboard** | Spending breakdown across 8 categories (groceries, mortgage, rates, insurance, transport, comms, healthcare, energy) with donut chart and 12-month trend | BHL: "No need for wider household expenses" | Remove |
 | **Savings Playbook** | 40+ cost-cutting ideas across 11 lifestyle categories (energy, groceries, insurance, rates, etc.) with tabbed browser | Out of scope — household expenses not included | Remove |
-| **Receipt Scanner** | Photo upload → Claude Vision OCR → extracts merchant, amount, category, date | Only relevant to household expense tracking | Remove |
 | **Total Cost View** | Full household spending context showing all categories together | Wider household expenses out of scope | Remove |
 | **Spending Trend Chart** | 12-month spending trend across all categories | Wider household expenses out of scope | Remove |
 | **Profile Switcher (Household)** | Switch between demo household spending profiles | Household dashboard feature | Remove |
@@ -45,7 +45,9 @@ Per BHL — contain it to total cost of energy. The following POC features will 
 - Open banking / bank feed integration
 - User accounts or authentication
 
-**Code removed:** `lib/household-model/`, `lib/cost-of-living/`, `/api/scan-receipt`, dashboard components, savings components — approximately 15 files and ~3,000 lines. Reduces bundle size and attack surface.
+**Note on Bill Upload:** The existing receipt scanner POC (`/api/scan-receipt`) was built for household expense tracking (groceries, rates, etc.). For MVP, this will be **repurposed** as an energy bill upload — extracting energy usage data (kWh, region, plan type) from power/gas bills to auto-populate the calculator form. This requires reworking the Claude Vision prompt from general receipt extraction to energy bill parsing.
+
+**Code removed:** `lib/household-model/`, `lib/cost-of-living/`, AI conversation panel, command bar, dashboard components, savings components — approximately 18 files and ~3,500 lines. Reduces bundle size and attack surface.
 
 > These features are preserved in the POC codebase and can be brought back in a future phase if the scope expands.
 
@@ -113,22 +115,21 @@ Looks up a plate or VIN and returns fuel economy (L/100km or kWh/100km for EVs),
 | **Lead time** | **1–2 days** (register, receive token, test) |
 | **Link** | [EECA Fuelsaver API](https://fuelsaver.govt.nz/api/) |
 
-### API 3: Anthropic Claude — AI Advisor
+### API 3: Anthropic Claude — Bill Upload (Vision)
 
-Powers the EIQ AI Energy Advisor (streaming chat grounded in the user's energy data).
+Powers the energy bill upload feature — Claude Vision extracts usage data from uploaded bill images. (AI chat/EIQ is **out of MVP scope** per BHL, so Claude is only used for bill parsing.)
 
 | | |
 |---|---|
 | **Provider** | Anthropic |
-| **Endpoint** | `https://api.anthropic.com/v1/messages` |
+| **Endpoint** | `https://api.anthropic.com/v1/messages` (with image content) |
 | **Auth** | API key (server-side only, via `x-api-key` header) |
-| **Cost** | Claude Sonnet 4: **$3/MTok input, $15/MTok output**. Estimated **$150–500/month** at ~10k chat sessions |
-| **Format** | JSON + SSE streaming |
-| **Model** | Claude Sonnet 4 (balanced cost/quality for conversational use) |
-| **Rate limits** | Tier-based, scales with spend history. Default ~50 req/min — sufficient for launch |
-| **Cost optimisation** | Prompt caching reduces repeated system prompt cost by ~90%. We should enable this since every chat session sends the same base system prompt. |
+| **Cost** | Claude Sonnet 4: **$3/MTok input, $15/MTok output**. Bill upload is low-volume — estimated **$20–80/month** at ~2k bill scans/month (much cheaper than chat was) |
+| **Format** | JSON (single request/response, no streaming needed for bill parsing) |
+| **Model** | Claude Sonnet 4 (vision capability for bill image reading) |
+| **Rate limits** | Default ~50 req/min — more than sufficient for bill uploads |
 | **Lead time** | **1–2 days** — Genesis IT signs up at [console.anthropic.com](https://console.anthropic.com), adds billing, generates key |
-| **Fallback** | POC demo mode works without an API key (keyword-matched responses, already built) |
+| **Fallback** | If no API key or Claude unavailable, bill upload is disabled — user enters data manually (all form inputs work without it) |
 | **Link** | [Anthropic API Pricing](https://platform.claude.com/docs/en/about-claude/pricing) |
 
 ### No API: Electricity & Gas Pricing
@@ -232,8 +233,8 @@ A working prototype has been built and validated. The majority of BHL's scope is
 | Feature | POC Status | Production Work Needed |
 |---------|-----------|----------------------|
 | TCE form (all inputs) | Complete | Minor polish |
-| Vehicle rego lookup | Complete (mocked data) | Integrate real NZTA API |
-| EIQ / AI advisor | Complete (Claude streaming) | Rate limiting, disclaimer, fallback handling |
+| Vehicle rego lookup | Complete (mocked data) | Integrate real NZTA + EECA APIs |
+| Bill upload (energy bills) | Partially built (receipt scanner exists) | Repurpose from general receipts to energy bill parsing. New Claude Vision prompt to extract kWh, region, plan type. |
 | Manual data capture fallback | Complete | None |
 | Current cost summary (stacked bar) | Complete | None |
 | Electrified cost summary | Complete | None |
@@ -242,7 +243,12 @@ A working prototype has been built and validated. The majority of BHL's scope is
 | Save electrification wishlist | **Not built** | New feature — build from scratch |
 | Link to Genesis offers | UI exists, links not wired | Wire to real URLs, confirm offers with marketing |
 
-**Bottom line:** ~85% of the feature scope is built. The main new work is the wishlist save feature, wiring up offers, and production hardening.
+**Removed from MVP (per BHL):**
+| Feature | POC Status | Why Removed |
+|---------|-----------|------------|
+| EIQ / AI Energy Advisor | Complete (Claude streaming) | BHL: "no need for AI chat at MVP" — can add in future phase |
+
+**Bottom line:** ~80% of the feature scope is built. The main new work is the wishlist save, bill upload repurposing, wiring up offers, and production hardening. Removing the AI chat simplifies the build significantly — no rate limiting needed on chat endpoints, no streaming infrastructure, smaller attack surface.
 
 ---
 
@@ -251,20 +257,21 @@ A working prototype has been built and validated. The majority of BHL's scope is
 ```mermaid
 flowchart TD
     A[Land on calculator] --> B[Enter household details<br/>Region, occupants, heating,<br/>water, cooktop]
-    B --> C[Add vehicles<br/>Rego lookup or manual entry]
+    B --> B2{How to add data?}
+    B2 -->|Manual| C[Add vehicles<br/>Rego lookup or manual entry]
+    B2 -->|Upload bill| U[Upload energy bill<br/>Claude Vision extracts usage]
+    U --> C
     C --> D[See current total<br/>energy cost breakdown]
     D --> E[See electrified cost<br/>comparison]
     E --> F[Toggle upgrades<br/>on/off individually]
     F -->|Real-time| E
-    F --> G{Want to explore?}
-    G -->|Yes| H[Ask EIQ AI Advisor<br/>a question]
-    H --> F
-    G -->|Ready to save| I[Save electrification<br/>wishlist]
+    F --> I[Save electrification<br/>wishlist]
     I --> J{Take action?}
     J -->|Yes| K[Link to Genesis offer<br/>or Cogo installer]
     J -->|Not yet| L[Return later via<br/>saved wishlist link]
 
     style A fill:#FF5800,color:#fff
+    style U fill:#60005F,color:#fff
     style K fill:#60005F,color:#fff
     style L fill:#472D3E,color:#fff
 ```
@@ -273,7 +280,7 @@ flowchart TD
 
 ## 7. Detailed Scope — Phase 1: Core Build
 
-**Goal:** Production-harden the existing POC and build the two missing features (wishlist + offers wiring). Strip out the out-of-scope sections (household dashboard, savings playbook, receipt scanner).
+**Goal:** Production-harden the existing POC and build the missing features (wishlist, bill upload, offers wiring). Strip out-of-scope sections (AI chat, household dashboard, savings playbook). Repurpose receipt scanner for energy bill parsing.
 
 **Elapsed time:** 2.5 weeks (1 developer)
 
@@ -285,17 +292,19 @@ Remove the household cost dashboard, savings playbook, receipt scanner, and tota
 **What gets removed:**
 - Household cost dashboard (spending donut, trend chart, category cards)
 - Savings playbook (40+ ideas across 11 categories)
-- Receipt scanner (photo upload + Claude Vision OCR)
+- EIQ / AI conversation panel (`components/ai/conversation-panel.tsx`, `components/ai/command-bar.tsx`)
+- AI chat API route (`/api/chat`) — no longer needed without EIQ
+- AI system prompt builder (`lib/tce-context.ts` — `buildTCESystemPrompt`, `generateTCEStarters`)
 - Total cost view (wider household spending context)
-- Related API route (`/api/scan-receipt`)
 - Household model library (`lib/household-model/`, `lib/cost-of-living/`)
 
 **What stays:**
 - TCE form + calculation engine
 - Results section (stacked bar, toggles, roadmap)
-- AI conversation panel (EIQ)
 - Power Circle offers section
 - Shareable summary card
+- Receipt scanner API route (`/api/scan-receipt`) — repurposed for energy bill upload
+- Receipt scanner component (`components/dashboard/receipt-scanner.tsx`) — repurposed and relocated
 
 **Acceptance criteria:**
 - Application loads with only in-scope features
@@ -367,41 +376,46 @@ The POC has a Power Circle offers section that shows contextual offer cards base
 
 ---
 
-### 1.4 Rate Limiting on API Routes
-**Estimate:** 2 days | **Priority:** Must have
+### 1.4 Energy Bill Upload
+**Estimate:** 3 days | **Priority:** Must have (per BHL)
 
-The `/api/chat` endpoint calls the Anthropic Claude API on every message. On a public-facing site, this needs throttling to prevent abuse and cost blowout.
+Repurpose the existing receipt scanner for energy bill parsing. The POC has `/api/scan-receipt` which sends images to Claude Vision and extracts structured data. For MVP, this needs to be reworked to extract energy-specific data from power and gas bills.
 
 **What gets built:**
-- Upstash Redis (or Vercel KV) integration for request counting
-- Per-IP sliding window rate limits: 20 chat messages per hour per IP
-- HTTP 429 response with `Retry-After` header when limit exceeded
-- Client-side feedback when rate limited ("You've asked a lot of questions — please try again shortly")
-- Redis connection failure degrades gracefully (requests allowed through, error logged)
+- Rework `/api/scan-receipt` route (or create `/api/scan-bill`) with a new Claude Vision prompt specifically for NZ energy bills — extract: provider name, plan type, region, monthly kWh usage, daily kWh average, gas usage, billing period, total cost
+- Relocate and rename the receipt scanner component from `components/dashboard/receipt-scanner.tsx` to `components/calculator/bill-upload.tsx`
+- Update the UI to match the energy context: "Upload your energy bill" instead of "Scan a receipt"
+- Map extracted data to the calculator form fields — auto-populate region, heating type (from gas usage presence), approximate consumption
+- Show extracted data to user for confirmation before applying to form
+- Rate limit the endpoint (Claude Vision API calls cost more than text) — 5 scans per hour per IP via simple in-memory counter or Upstash
+- Graceful fallback: if extraction fails or confidence is low, show "We couldn't read this bill — please enter your details manually"
 
 **Acceptance criteria:**
-- A single IP cannot exceed 20 chat requests/hour
-- Rate-limited users see a friendly message, not a raw error
-- Normal usage (3–5 questions per session) is never throttled
-- If Redis is down, the app still works (just unthrottled)
+- Uploading a Genesis power bill extracts kWh usage and region correctly
+- Uploading a gas bill detects gas usage
+- Extracted data populates form fields after user confirms
+- Low-confidence or unreadable bills fall back to manual entry gracefully
+- Rate limited to prevent API cost blowout
+
+**Dependency:** Anthropic API key (S1) — needed for Claude Vision. Bill upload is the only MVP feature that requires the Anthropic API.
 
 ---
 
 ### 1.5 Error Boundaries & Fallback States
 **Estimate:** 1 day | **Priority:** Must have
 
-Production needs to handle Claude API outages, slow responses, and JavaScript errors gracefully.
+Production needs to handle JavaScript errors and API failures gracefully.
 
 **What gets built:**
-- React Error Boundaries wrapping the calculator, results, and EIQ panel independently
-- Claude API timeout (30s) + single retry + fallback message
-- If Claude is unavailable: calculator and results still work (client-side). EIQ shows "AI advisor is temporarily unavailable" with static FAQ-style conversation starters
+- React Error Boundaries wrapping the calculator, results, and bill upload independently
+- Bill upload: Claude Vision API timeout (30s) + fallback "couldn't read this bill" message
+- Calculator and results are client-side only — no external API dependency for core functionality
 - Structured error responses on all API routes
 
 **Acceptance criteria:**
-- Claude outage does not affect calculator or results
-- EIQ panel shows clear fallback when Claude is unavailable
 - No white-screen crashes reach the user
+- Bill upload failure doesn't affect calculator or results
+- API errors return structured JSON with user-friendly messages
 
 ---
 
@@ -409,7 +423,7 @@ Production needs to handle Claude API outages, slow responses, and JavaScript er
 **Estimate:** 1 day | **Priority:** Must have (legal blocker)
 
 **What gets built:**
-- `/privacy` page — what data is collected (analytics cookies only, AI conversation content sent to Anthropic for processing but not stored, no PII persisted)
+- `/privacy` page — what data is collected (analytics cookies only, bill images sent to Anthropic for processing but not stored, no PII persisted)
 - `/terms` page — savings estimates are indicative, based on publicly available data, not a guarantee. Not financial advice. Methodology references (Rewiring Aotearoa, EECA, Powerswitch)
 - Inline disclaimer on results page: "These estimates are based on average usage patterns and publicly available pricing. Your actual savings will depend on your circumstances."
 - Footer links on every page
@@ -437,20 +451,7 @@ Production needs to handle Claude API outages, slow responses, and JavaScript er
 
 ---
 
-### 1.8 AI Advisor Disclaimer
-**Estimate:** 0.5 days | **Priority:** Must have
-
-**What gets built:**
-- Persistent label in the EIQ panel: "AI Energy Advisor — powered by AI. Responses are generated and may not be perfectly accurate."
-- AI directed to refer users to Genesis for specific plan pricing rather than inventing details
-
-**Acceptance criteria:**
-- Users cannot interact with the AI without seeing the disclosure
-- AI does not fabricate Genesis plan names or prices
-
----
-
-### 1.9 WCAG 2.1 AA Accessibility Audit & Fixes
+### 1.8 WCAG 2.1 AA Accessibility Audit & Fixes
 **Estimate:** 3 days | **Priority:** Must have
 
 **What gets built:**
@@ -467,7 +468,7 @@ Production needs to handle Claude API outages, slow responses, and JavaScript er
 
 ---
 
-### 1.10 SEO
+### 1.9 SEO
 **Estimate:** 1 day | **Priority:** Should have
 
 **What gets built:**
@@ -482,7 +483,7 @@ Production needs to handle Claude API outages, slow responses, and JavaScript er
 
 ---
 
-### 1.11 Mobile Responsive Polish
+### 1.10 Mobile Responsive Polish
 **Estimate:** 2 days | **Priority:** Should have
 
 **What gets built:**
@@ -500,7 +501,7 @@ Production needs to handle Claude API outages, slow responses, and JavaScript er
 
 ---
 
-### 1.12 Loading States
+### 1.11 Loading States
 **Estimate:** 0.5 days | **Priority:** Should have
 
 **What gets built:**
@@ -647,7 +648,7 @@ Deploy to staging URL. Walk through with BHL and stakeholders. Collect feedback.
 
 ---
 
-## 10. Effort Summary
+## 10. Effort & Cost Estimate
 
 ```mermaid
 gantt
@@ -659,41 +660,122 @@ gantt
     Remove out-of-scope sections            :p1a, 2026-04-21, 1d
     Wishlist save feature                   :p1b, 2026-04-22, 3d
     Wire offers to real links               :p1c, 2026-04-25, 2d
-    Rate limiting                           :p1d, 2026-04-28, 2d
-    Error boundaries                        :p1e, 2026-04-28, 1d
-    Privacy + terms + cookie consent        :p1f, 2026-04-29, 2d
-    AI disclaimer                           :p1g, 2026-04-30, 0.5d
-    WCAG accessibility                      :p1h, 2026-04-30, 3d
-    SEO                                     :p1i, 2026-05-05, 1d
-    Mobile polish                           :p1j, 2026-05-05, 2d
-    Loading states                          :p1k, 2026-05-06, 0.5d
-    Phase 1 complete                        :milestone, m1, 2026-05-07, 0d
+    Energy bill upload                      :p1d, 2026-04-28, 3d
+    Error boundaries                        :p1e, 2026-04-30, 1d
+    Privacy + terms + cookie consent        :p1f, 2026-05-01, 2d
+    WCAG accessibility                      :p1g, 2026-05-05, 3d
+    SEO                                     :p1h, 2026-05-08, 1d
+    Mobile polish                           :p1i, 2026-05-08, 2d
+    Loading states                          :p1j, 2026-05-12, 0.5d
+    Phase 1 complete                        :milestone, m1, 2026-05-12, 0d
 
     section Phase 2 — Data & Offers
-    NZTA rego lookup                        :p2a, 2026-05-08, 3d
-    Real energy pricing                     :p2b, 2026-05-08, 3d
-    Fuel prices                             :p2c, 2026-05-13, 1d
-    Genesis offer content                   :p2d, 2026-05-13, 2d
-    Phase 2 complete                        :milestone, m2, 2026-05-15, 0d
+    NZTA + EECA rego lookup                 :p2a, 2026-05-13, 3d
+    Real energy pricing config              :p2b, 2026-05-13, 3d
+    Fuel prices                             :p2c, 2026-05-16, 1d
+    Genesis offer content                   :p2d, 2026-05-16, 2d
+    Phase 2 complete                        :milestone, m2, 2026-05-20, 0d
 
     section Phase 3 — QA & Launch
-    Unit tests                              :p3a, 2026-05-16, 2d
-    E2E tests                               :p3b, 2026-05-16, 2d
-    Cross-browser testing                   :p3c, 2026-05-20, 2d
-    Performance audit                       :p3d, 2026-05-22, 1d
-    Security review                         :p3e, 2026-05-22, 2d
-    UAT with stakeholders                   :p3f, 2026-05-26, 2d
-    Go-live                                 :milestone, launch, 2026-05-28, 0d
+    Unit tests                              :p3a, 2026-05-21, 2d
+    E2E tests                               :p3b, 2026-05-21, 2d
+    Cross-browser testing                   :p3c, 2026-05-23, 2d
+    Performance audit                       :p3d, 2026-05-27, 1d
+    Security review                         :p3e, 2026-05-27, 2d
+    UAT with stakeholders                   :p3f, 2026-05-29, 2d
+    Go-live                                 :milestone, launch, 2026-06-02, 0d
 ```
 
-| Phase | Scope | Dev Days | Calendar |
-|-------|-------|---------|----------|
-| **Phase 1 — Core Build** | Strip out-of-scope, build wishlist, wire offers, production harden (security, compliance, accessibility, mobile) | 18 days | 2.5 weeks |
-| **Phase 2 — Data & Offers** | Real rego lookup, energy pricing, fuel prices, Genesis offer content | 9 days | 1.5 weeks |
-| **Phase 3 — QA & Launch** | Unit tests, E2E tests, cross-browser, performance, security, UAT | 11 days | 2 weeks |
-| **Total** | | **38 dev days** | **~6 weeks** (1 developer) |
+### Effort by Discipline
 
-> With 2 developers, Phases 1 and 2 can overlap — total compresses to **~4 weeks**.
+Each task broken down by the type of work involved. Some tasks span multiple disciplines.
+
+#### Design (UX/UI)
+
+| Task | What | Days | Cost |
+|------|------|------|------|
+| Wishlist save — UX design | Modal flow, save/share UI, restored-wishlist banner | 1 | $1,600 |
+| Bill upload — UX design | Upload flow, extracted-data confirmation UI, error/fallback states | 1 | $1,600 |
+| Offer cards — link treatment | CTA button styles, external link indicators | 0.5 | $800 |
+| Privacy + terms — page layout | Static page template, footer nav | 0.5 | $800 |
+| Cookie consent — banner design | Non-blocking bottom banner, preference states | 0.5 | $800 |
+| Mobile responsive — audit + fixes | Touch targets, viewport testing, layout fixes | 1 | $1,600 |
+| Loading states + skeleton UI | Spinner, skeleton, typing indicator, scroll behaviour | 0.5 | $800 |
+| SEO — OG preview card | 1200x630 branded share image | 0.5 | $800 |
+| **Design total** | | **5.5 days** | **$8,800** |
+
+#### Development (Frontend + Backend)
+
+| Task | What | Days | Cost |
+|------|------|------|------|
+| Strip out-of-scope sections | Remove AI chat, dashboard, savings, household model, dead imports | 1 | $1,600 |
+| Wishlist save — implementation | URL encode/decode, PDF export, image export, URL restore on load | 2 | $3,200 |
+| Bill upload — implementation | Repurpose scan-receipt route, new Claude Vision prompt, form mapping, rate limiting | 2 | $3,200 |
+| Wire offers to real links | Add hrefs, UTM params, JSON config for offers | 1.5 | $2,400 |
+| Error boundaries | React error boundaries, fallback states, API error handling | 1 | $1,600 |
+| Privacy + terms pages | Create /privacy and /terms routes, draft content, footer links | 0.5 | $800 |
+| Cookie consent — implementation | Consent logic, localStorage, conditional GA4 loading | 0.5 | $800 |
+| WCAG accessibility fixes | axe-core fixes, keyboard nav, focus mgmt, ARIA labels, contrast | 2 | $3,200 |
+| SEO implementation | Meta tags, OG tags, JSON-LD, robots.txt, sitemap | 0.5 | $800 |
+| Mobile responsive fixes | CSS fixes from design audit | 1 | $1,600 |
+| Loading states — implementation | Skeleton, typing indicator, smooth scroll | 0.5 | $800 |
+| NZTA + EECA rego lookup | Server-side API route, NZTA ArcGIS query, EECA Fuelsaver query, cache, fallback | 3 | $4,800 |
+| Energy pricing JSON config | Extract constants to JSON, pricing loader, update costs/roadmap imports | 3 | $4,800 |
+| MBIE fuel prices | CSV parsing, update pricing config, "as of" date display | 1 | $1,600 |
+| Genesis offer content config | JSON config for offers, import in component | 1 | $1,600 |
+| Async rego lookup in form | Convert sync handleLookup to async fetch, loading state, remove demo plates | 1 | $1,600 |
+| **Development total** | | **22 days** | **$35,200** |
+
+#### Testing & QA
+
+| Task | What | Days | Cost |
+|------|------|------|------|
+| Unit tests — energy model | calculateTCE, consumption, costs, roadmap, edge cases, demo profiles | 2 | $3,200 |
+| E2E tests — Playwright | Happy path, mobile, wishlist, bill upload, offers, form validation | 2 | $3,200 |
+| Cross-browser + mobile testing | Manual test: Chrome, Safari, Firefox, Edge, iOS, Android | 2 | $3,200 |
+| Performance + Lighthouse audit | Core Web Vitals, bundle analysis, optimisation | 1 | $1,600 |
+| Security review | npm audit, CORS, CSP, secrets check, HTTP headers, input validation | 2 | $3,200 |
+| **Testing total** | | **9 days** | **$14,400** |
+
+#### Project Management & Stakeholder
+
+| Task | What | Days | Cost |
+|------|------|------|------|
+| UAT coordination + stakeholder walkthrough | Deploy staging, demo to BHL, collect feedback, fix criticals | 2 | $3,200 |
+| Go-live coordination | DNS cutover, monitoring, post-launch checks | 0.5 | $800 |
+| Project management overhead | Standups, Asana updates, Genesis comms, blockers | 2 | $3,200 |
+| **PM total** | | **4.5 days** | **$7,200** |
+
+### Summary by Discipline
+
+| Discipline | Days | Cost | % of Total |
+|-----------|------|------|-----------|
+| Design (UX/UI) | 5.5 | $8,800 | 13% |
+| Development (Frontend + Backend) | 22 | $35,200 | 54% |
+| Testing & QA | 9 | $14,400 | 22% |
+| Project Management & Stakeholder | 4.5 | $7,200 | 11% |
+| **Total** | **41 days** | **$65,600** | 100% |
+
+> **Calendar time:** ~6 weeks (1 developer + designer) or ~4 weeks (2 developers + designer overlapped).
+>
+> Rates based on $200/hr, 8hr day ($1,600/day). Adjust to Catch's actual rate card.
+>
+> Design and development can run in parallel — designer works 1 week ahead on each feature, developer implements behind.
+
+### One-Off Costs (Optional)
+
+| Item | Estimate | Notes |
+|------|----------|-------|
+| External accessibility audit (certified WCAG) | $3,000–$8,000 | Only if Genesis requires third-party certification. Internal audit included in Phase 1. |
+| External security pen test | $2,000–$5,000 | Only if Genesis IT requires external audit beyond our review. |
+| **Optional total** | **$5,000–$13,000** | Only if Genesis requires external audits |
+
+### Total Project Cost
+
+| Scenario | Cost |
+|----------|------|
+| **Build only** | **$65,600** |
+| **Build + external audits** | **$70,600–$78,600** |
 
 ---
 
@@ -702,11 +784,23 @@ gantt
 | Item | Low | High | Notes |
 |------|-----|------|-------|
 | Hosting (Vercel Pro) | $20 | $50 | Scales with traffic |
-| Anthropic Claude API | $150 | $500 | ~10k chat sessions/month |
-| Rate limiting (Upstash) | $10 | $25 | Per-IP throttling |
+| Anthropic Claude API (bill upload only) | $20 | $80 | ~2k bill scans/month. Much lower than AI chat would have been. |
+| Rate limiting (Upstash) | $0 | $10 | Only needed for bill upload endpoint. Simple in-memory counter may suffice. |
 | Error monitoring (Sentry) | $0 | $26 | Free tier likely sufficient |
 | Analytics (GA4) | $0 | $0 | Free |
-| **Total** | **$180** | **$600/month** | |
+| **Total** | **$40** | **$170/month** | Significantly reduced without AI chat |
+
+### Total Cost of Ownership — Year 1
+
+| Item | Cost |
+|------|------|
+| Build (one-off) | $65,600 |
+| External audits (optional, one-off) | $0–$13,000 |
+| Running costs (12 months at $40–170/mo) | $480–$2,040 |
+| **Year 1 total** | **$66,080–$80,640** |
+| **Ongoing annual cost (year 2+)** | **$480–$2,040/year** |
+
+> After the build, the calculator is extremely cheap to run — the core calculation is client-side with no backend database. The only ongoing API cost is Claude Vision for bill uploads, which is low-volume and optional (the calculator works fully without it).
 
 ---
 
@@ -716,7 +810,7 @@ gantt
 |------|-----------|--------|------------|
 | Electricity/gas pricing goes stale between quarterly updates | Medium | Medium | Show "as of [date]" on results. Same approach Cogo uses. |
 | NZTA or EECA API has rate limits or downtime | Low | Medium | Both are free public APIs. Graceful fallback to manual vehicle entry (already built). Cache lookups for 24hrs. |
-| Claude API costs spike with traffic | Medium | High | Rate limiting, per-session caps, shorter system prompts |
+| Bill upload extraction accuracy varies by bill format | Medium | Medium | User confirms extracted data before applying. Fallback to manual entry. Test against Genesis, Contact, Meridian, Mercury bill formats. |
 | Savings estimates publicly challenged | Medium | High | Strong methodology section + disclaimers. Same data sources as Cogo (Rewiring Aotearoa) |
 | Genesis IT blocks Vercel | Low | High | Azure App Service as fallback |
 | Legal delays on privacy/terms copy | Medium | Medium | Deploy to staging with draft copy. Final copy before go-live only |
@@ -730,9 +824,10 @@ gantt
 |---|----------|--------|-------|
 | 1 | Scope limited to TCE inputs/outputs — no household expenses | **Decided** (BHL) | BHL |
 | 2 | TCE Calculator complements Cogo (not replaces) | **Decided** | BHL / Product |
-| 3 | Wishlist saves via URL + PDF (no user accounts) | **Proposed** | Engineering |
-| 4 | AI advisor uses Anthropic Claude | **Decided** (POC validated) | Engineering |
-| 5 | All calculation runs client-side | **Decided** (POC validated) | Engineering |
-| 6 | Host on Vercel vs Azure | **Open** | IT |
-| 7 | Energy pricing: manual quarterly JSON update (no NZ retail pricing API exists) | **Decided** (no alternative) | Engineering |
-| 8 | Which Genesis offers to link to | **Open** | Marketing / Product |
+| 3 | AI chat/EIQ out of MVP scope | **Decided** (BHL 14 Apr) | BHL |
+| 4 | Bill upload in MVP scope | **Decided** (BHL 14 Apr) | BHL |
+| 5 | Wishlist saves via URL + PDF (no user accounts) | **Proposed** | Engineering |
+| 6 | All calculation runs client-side | **Decided** (POC validated) | Engineering |
+| 7 | Host on Vercel vs Azure | **Open** | IT |
+| 8 | Energy pricing: manual quarterly JSON update (no NZ retail pricing API exists) | **Decided** (no alternative) | Engineering |
+| 9 | Which Genesis offers to link to | **Open** | Marketing / Product |
