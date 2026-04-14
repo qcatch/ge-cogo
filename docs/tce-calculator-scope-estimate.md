@@ -72,11 +72,13 @@ Per BHL — contain it to total cost of energy. The following POC features will 
 | A3 | **Legal review** | Genesis Legal — privacy policy, terms of use, AI disclaimer, savings disclaimer | 1–2 weeks |
 | A4 | **IT / Security review** | Genesis IT / InfoSec — before going on a genesisenergy.co.nz subdomain | 1–2 weeks |
 
-### External APIs
+---
+
+## 3. External APIs
 
 We need 3 external APIs. Two are free and open, one is paid. There is no API for residential electricity/gas pricing in NZ — we handle that with a manual update process.
 
-#### API 1: NZTA Motor Vehicle Register — Rego Lookup
+### API 1: NZTA Motor Vehicle Register — Rego Lookup
 
 Looks up a NZ plate number and returns vehicle make, model, year, fuel type, and engine capacity.
 
@@ -95,7 +97,7 @@ Looks up a NZ plate number and returns vehicle make, model, year, fuel type, and
 
 > **Limitation:** The MVR has fuel type but **not fuel economy** (L/100km). For fuel economy data we supplement with the EECA Fuelsaver API below.
 
-#### API 2: EECA Fuelsaver — Vehicle Fuel Economy
+### API 2: EECA Fuelsaver — Vehicle Fuel Economy
 
 Looks up a plate or VIN and returns fuel economy (L/100km or kWh/100km for EVs), CO2 emissions, and energy star ratings. This fills the gap the NZTA data doesn't cover.
 
@@ -111,7 +113,7 @@ Looks up a plate or VIN and returns fuel economy (L/100km or kWh/100km for EVs),
 | **Lead time** | **1–2 days** (register, receive token, test) |
 | **Link** | [EECA Fuelsaver API](https://fuelsaver.govt.nz/api/) |
 
-#### API 3: Anthropic Claude — AI Advisor
+### API 3: Anthropic Claude — AI Advisor
 
 Powers the EIQ AI Energy Advisor (streaming chat grounded in the user's energy data).
 
@@ -129,7 +131,7 @@ Powers the EIQ AI Energy Advisor (streaming chat grounded in the user's energy d
 | **Fallback** | POC demo mode works without an API key (keyword-matched responses, already built) |
 | **Link** | [Anthropic API Pricing](https://platform.claude.com/docs/en/about-claude/pricing) |
 
-#### No API: Electricity & Gas Pricing
+### No API: Electricity & Gas Pricing
 
 There is **no public API** for residential electricity or gas tariffs in New Zealand.
 
@@ -143,7 +145,7 @@ There is **no public API** for residential electricity or gas tariffs in New Zea
 
 This is the same approach the Cogo Go Electric calculator uses — static regional averages, not live pricing.
 
-#### No API: Fuel Prices (CSV Download)
+### No API: Fuel Prices (CSV Download)
 
 MBIE publishes weekly national average fuel prices as a free CSV download — not an API, but simple to consume.
 
@@ -158,7 +160,7 @@ MBIE publishes weekly national average fuel prices as a free CSV download — no
 | **Our approach** | Parse latest row from CSV into our pricing JSON config. Can be automated or updated manually. |
 | **Link** | [MBIE Weekly Fuel Price Monitoring](https://www.mbie.govt.nz/building-and-energy/energy-and-natural-resources/energy-statistics-and-modelling/energy-statistics/weekly-fuel-price-monitoring) |
 
-#### API Summary
+### API Summary
 
 | # | API | Cost | Auth Required | Lead Time | Status |
 |---|-----|------|--------------|-----------|--------|
@@ -169,6 +171,10 @@ MBIE publishes weekly national average fuel prices as a free CSV download — no
 | 5 | Electricity/Gas pricing | N/A | N/A | N/A | **No API exists** — manual quarterly JSON |
 
 **Total monthly API cost: ~$150–500** (Anthropic is the only paid API. Everything else is free.)
+
+---
+
+## 4. Accounts, Content & Critical Path
 
 ### Accounts & Access (Non-API)
 
@@ -196,16 +202,16 @@ flowchart TD
     A --> D[Hosting + domain<br/>S1 + S2]
     A --> E[Anthropic API key<br/>API 3]
 
-    B --> F[Phase 1 — Core Build<br/>2.5 weeks]
+    B --> F[Phase 1: Core Build<br/>2.5 weeks]
     C --> F
     D --> F
     E --> F
 
-    F --> G[Phase 2 — Data & Offers<br/>1.5 weeks]
-    API12[NZTA + EECA APIs<br/>APIs 1 & 2 — free, ready now] --> G
+    F --> G[Phase 2: Data and Offers<br/>1.5 weeks]
+    API12[NZTA + EECA APIs<br/>Free, ready now] --> G
     C1[Genesis offer details<br/>C1] --> G
 
-    F --> H[Phase 3 — QA & Launch<br/>1.5 weeks]
+    F --> H[Phase 3: QA and Launch<br/>1.5 weeks]
     IT[IT / Security review<br/>A4] --> H
 
     H --> K[Launch]
@@ -219,7 +225,7 @@ flowchart TD
 
 ---
 
-## 3. What Already Exists (POC)
+## 5. What Already Exists (POC)
 
 A working prototype has been built and validated. The majority of BHL's scope is already functional:
 
@@ -240,7 +246,7 @@ A working prototype has been built and validated. The majority of BHL's scope is
 
 ---
 
-## 4. User Flow
+## 6. User Flow
 
 ```mermaid
 flowchart TD
@@ -265,7 +271,7 @@ flowchart TD
 
 ---
 
-## 5. Detailed Scope — Phase 1: Core Build
+## 7. Detailed Scope — Phase 1: Core Build
 
 **Goal:** Production-harden the existing POC and build the two missing features (wishlist + offers wiring). Strip out the out-of-scope sections (household dashboard, savings playbook, receipt scanner).
 
@@ -508,7 +514,7 @@ Production needs to handle Claude API outages, slow responses, and JavaScript er
 
 ---
 
-## 6. Detailed Scope — Phase 2: Data & Offers
+## 8. Detailed Scope — Phase 2: Data & Offers
 
 **Goal:** Replace mocked data with real sources and wire up Genesis offers.
 
@@ -565,7 +571,7 @@ Populate the offers section with real Genesis product content. Static content ca
 
 ---
 
-## 7. Detailed Scope — Phase 3: QA & Launch Prep
+## 9. Detailed Scope — Phase 3: QA & Launch Prep
 
 **Goal:** Verify everything works, is secure, and passes Genesis IT review.
 
@@ -641,7 +647,7 @@ Deploy to staging URL. Walk through with BHL and stakeholders. Collect feedback.
 
 ---
 
-## 8. Effort Summary
+## 10. Effort Summary
 
 ```mermaid
 gantt
@@ -691,7 +697,7 @@ gantt
 
 ---
 
-## 9. Monthly Running Costs (Post-Launch)
+## 11. Monthly Running Costs (Post-Launch)
 
 | Item | Low | High | Notes |
 |------|-----|------|-------|
@@ -704,7 +710,7 @@ gantt
 
 ---
 
-## 10. Risks
+## 12. Risks
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
@@ -718,7 +724,7 @@ gantt
 
 ---
 
-## 11. Decision Log
+## 13. Decision Log
 
 | # | Decision | Status | Owner |
 |---|----------|--------|-------|
